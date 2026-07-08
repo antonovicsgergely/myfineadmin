@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("VENDOR") // "SUPERADMIN", "ADMIN", "VENDOR"
+  vendor        Vendor?
+  notifications Notification[]
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Vendor {
+  id              String         @id @default(cuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName     String
+  brandName       String?
+  description     String?
+  logoUrl         String?
+  coverUrl        String?
+  
+  draftDescription String?
+  draftLogoUrl     String?
+  draftCoverUrl    String?
+  brandStatus      String @default("DRAFT") // DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED
+  brandRejectReason String?
+
+  unasId          String?        // ID in Unas API (for vendor/customer mapping)
+  unasPageId      String?        // ID of the Brand Page in Unas (Plusz menük, Oldalak)
+  status          String         @default("PENDING") // PENDING, APPROVED, REJECTED
+  commissionRate  Float?         // Custom commission rate
+  
+  // New Settings Fields
+  subscriptionTier   String      @default("BASIC") // BASIC, PRO, PREMIUM
+  taxNumber          String?
+  registrationNumber String?
+  zipCode            String?
+  city               String?
+  streetAddress      String?
+  bankAccountNumber  String?
+  emailNotifications Boolean     @default(true)
+
+  products        ProductSync[]
+  settlements     Settlement[]
+  blogPosts       BlogPost[]
+  categoryRequests CategoryRequest[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model ProductSync {
+  id              String    @id @default(cuid())
+  vendorId        String?
+  vendor          Vendor?    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  
+  uploadMethod    String    @default("MANUAL") // MANUAL, EXCEL, FEED
+  feedUrl         String?
+  
+  categoryId      String?   
+  regionId        String?
+  filters         String?   // JSON string of selected filters
+  
+  // Alapadatok
+  unasProductId   String?   @unique // Product ID in Unas
+  itemNumber      String?   // Cikkszám
+  name            String
+  shortDescription String?
+  description     String?
+  
+  // Árak
+  price           Float     // Alapár
+  salePrice       Float?    // Akciós ár
+  
+  // Szállítási adatok
+  weight          Float?    // Súly (kg)
+  width           Float?    // Szélesség (cm)
+  height          Float?    // Magasság (cm)
+  length          Float?    // Hosszúság/Mélység (cm)
+  
+  imageUrl        String?
+  barcode         String?   // EAN or GTIN
+  
+  // Termék Státusza (Unas)
+  statusActive          Boolean @default(true)
+  statusNotPurchasable  Boolean @default(false)
+  statusAdultOnly       Boolean @default(false)
+  statusHidden          Boolean @default(false)
+  statusGiftOnly        Boolean @default(false)
+  statusNew             Boolean @default(false)
+  statusInquiry         Boolean @default(false)
+  statusAutoExport      Boolean @default(true)
+  statusNoDirectDiscount Boolean @default(false)
+  
+  // Publikus Időszak
+  publicFrom            DateTime?
+  publicTo              DateTime?
+  
+  // Raktárkezelés
+  useInventory          Boolean @default(true)
+  allowBackorder        Boolean @default(false)
+  lowStockThreshold     Int?
+  
+  qualityStatus   String    @default("DRAFT") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED
+  qualityRejectReason String?
+  
+  syncStatus      String    @default("PENDING") // PENDING, SYNCED, ERROR
+  lastSyncedAt    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Settlement {
+  id              String    @id @default(cuid())
+  vendorId        String
+  vendor          Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  amount          Float     // Net amount
+  currency        String    @default("HUF")
+  status          String    @default("PENDING") // PENDING, PAID
+  periodStart     DateTime
+  periodEnd       DateTime
+  unasOrderIds    String    // Comma separated list of order IDs
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model SubscriptionPackage {
+  id                        String   @id @default(cuid())
+  code                      String   @unique // BASIC, PRO, PREMIUM
+  name                      String   
+  commissionRate            Float    // Percentage, e.g. 15.0
+  promoCommissionRate       Float?   // Optional promotional rate
+  marketingFee              Float    @default(0) // Marketing hozzájárulás (%)
+  cardFee                   Float    @default(0) // Bankkártyás díj (%)
+  activeProductLimit        Int?     // Aktív termék korlát (null = korlátlan)
+  monthlyFee                Float    @default(0) // Fee in HUF
+  description               String?
+  features                  String?  // JSON string or comma-separated
+  isActive                  Boolean  @default(true)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+model BlogPost {
+  id              String    @id @default(cuid())
+  vendorId        String
+  vendor          Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  
+  title           String?
+  content         String?
+  draftTitle      String?
+  draftContent    String?
+  
+  status          String    @default("DRAFT") // DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED
+  rejectReason    String?
+  publishedAt     DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  unasId    String?    @unique
+  name      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryToCategory")
+  isActive  Boolean    @default(true)
+}
+
+model Filter {
+  id        String   @id @default(cuid())
+  unasId    String?  @unique
+  name      String   @unique
+  type      String   @default("LIST") // LIST, TAG, COLOR, SIZE etc.
+  values    String?  // JSON array of possible values
+  isActive  Boolean  @default(true)
+}
+
+model CategoryRequest {
+  id              String    @id @default(cuid())
+  vendorId        String
+  vendor          Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  requestedName   String    
+  type            String    @default("CATEGORY") // CATEGORY or FILTER
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  adminResponse   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Region {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  unasOrderId     String      @unique
+  customerName    String?
+  customerEmail   String?
+  status          String
+  totalGross      Float
+  totalNet        Float
+  currency        String      @default("HUF")
+  shippingMethod  String?
+  paymentMethod   String?
+  paymentStatus   String?
+  orderDate       DateTime
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model OrderItem {
+  id              String    @id @default(cuid())
+  orderId         String
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productSyncId   String?
+  unasProductId   String?
+  sku             String?
+  productName     String
+  quantity        Int
+  unitPriceNet    Float
+  unitPriceGross  Float
+  totalNet        Float
+  totalGross      Float
+  vendorId        String?
+}
+
+model SyncLog {
+  id        String   @id @default(cuid())
+  type      String   // CATEGORIES, PARAMETERS, PRODUCTS, ORDERS
+  status    String   // SUCCESS, ERROR, IN_PROGRESS
+  message   String?
+  details   String?  // JSON string with sync details
+  itemCount Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  link      String?  // Opcionális link, pl. a blogbejegyzéshez
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+}

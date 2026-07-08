@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f4f7fe; /* Very light modern gray/blue */
+  --foreground: #1e293b; /* slate-800 */
+  --primary: #2563eb; /* blue-600 */
+  --primary-hover: #1d4ed8; /* blue-700 */
+  --secondary: #3b82f6; /* blue-500 */
+  --accent: #f59e0b; /* amber-500 */
+  --surface: #ffffff;
+  --border: #e2e8f0;
+}
+
+/* Force light mode style to match the Davinci design */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #f4f7fe;
+    --foreground: #1e293b;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --secondary: #3b82f6;
+    --accent: #f59e0b;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+}
+
+/* Redefining .glass as a solid white card to quickly convert all existing elements to the new style */
+.glass {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}

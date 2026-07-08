@@ -1,0 +1,17 @@
+<svg width="400" height="150" viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .main-text { font-family: Arial, sans-serif; fill: #1f3b2b; font-weight: bold; font-size: 72px; letter-spacing: -1px; }
+    .sub-text { font-family: Arial, sans-serif; fill: #b89151; font-weight: normal; font-size: 14px; letter-spacing: 5px; }
+    .leaf { fill: #cba358; }
+    .line { stroke: #b89151; stroke-width: 1.5; }
+  </style>
+  
+  <!-- "M" and leaf recreation -->
+  <text x="30" y="90" class="main-text">Myfine</text>
+  <path class="leaf" d="M 85 25 C 100 10 115 15 120 25 C 120 40 105 55 90 50 C 85 45 80 35 85 25 Z" />
+  
+  <!-- Subtext with lines -->
+  <line x1="30" y1="115" x2="70" y2="115" class="line" />
+  <text x="80" y="120" class="sub-text">PRÉMIUM MAGYAR ÍZEK</text>
+  <line x1="330" y1="115" x2="370" y2="115" class="line" />
+</svg>
