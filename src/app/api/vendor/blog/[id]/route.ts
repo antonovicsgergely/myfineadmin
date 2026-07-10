@@ -16,7 +16,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
       include: { vendor: true }
     });
 
-    if (!post || post.vendor.userId !== session.user.id) {
+    if (!post || post.vendor?.userId !== session.user.id) {
       return NextResponse.json({ error: "Bejegyzés nem található vagy nincs jogosultságod." }, { status: 404 });
     }
 
@@ -36,14 +36,14 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     }
 
     const data = await req.json();
-    const { draftTitle, draftContent } = data;
+    const { draftTitle, draftContent, draftCoverUrl, draftShortDescription } = data;
 
     const post = await prisma.blogPost.findUnique({
       where: { id },
       include: { vendor: true }
     });
 
-    if (!post || post.vendor.userId !== session.user.id) {
+    if (!post || post.vendor?.userId !== session.user.id) {
       return NextResponse.json({ error: "Bejegyzés nem található." }, { status: 404 });
     }
 
@@ -56,6 +56,8 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
       data: {
         draftTitle,
         draftContent,
+        draftCoverUrl,
+        draftShortDescription,
         status: "DRAFT" // Resets to draft if it was REJECTED
       }
     });

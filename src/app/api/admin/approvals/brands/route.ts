@@ -40,6 +40,7 @@ export async function POST(req: Request) {
         where: { id: vendorId },
         data: {
           description: vendor.draftDescription,
+          shortDescription: vendor.draftShortDescription,
           logoUrl: vendor.draftLogoUrl,
           coverUrl: vendor.draftCoverUrl,
           brandStatus: "PUBLISHED",

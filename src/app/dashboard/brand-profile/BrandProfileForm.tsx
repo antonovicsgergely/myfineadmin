@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
@@ -13,14 +13,33 @@ export default function BrandProfileForm({ vendor }: { vendor: any }) {
   const [submitting, setSubmitting] = useState(false);
   
   const initialDescription = vendor.draftDescription || vendor.description || "";
+  const initialShortDescription = vendor.draftShortDescription || vendor.shortDescription || "";
+  const initialCoverUrl = vendor.draftCoverUrl || vendor.coverUrl || "";
+  const initialLogoUrl = vendor.draftLogoUrl || vendor.logoUrl || "";
+  
   const [savedDescription, setSavedDescription] = useState(initialDescription);
   const [draftDescription, setDraftDescription] = useState(savedDescription);
+
+  const [savedShortDescription, setSavedShortDescription] = useState(initialShortDescription);
+  const [draftShortDescription, setDraftShortDescription] = useState(savedShortDescription);
+
+  const [savedCoverUrl, setSavedCoverUrl] = useState(initialCoverUrl);
+  const [draftCoverUrl, setDraftCoverUrl] = useState(savedCoverUrl);
+
+  const [savedLogoUrl, setSavedLogoUrl] = useState(initialLogoUrl);
+  const [draftLogoUrl, setDraftLogoUrl] = useState(savedLogoUrl);
+
   const [showPreview, setShowPreview] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const router = useRouter();
   
   const isPending = vendor.brandStatus === "PENDING_APPROVAL";
-  const isDirty = draftDescription !== savedDescription;
+  const isDirty = draftDescription !== savedDescription || 
+                  draftShortDescription !== savedShortDescription || 
+                  draftCoverUrl !== savedCoverUrl || 
+                  draftLogoUrl !== savedLogoUrl;
 
   const getStatusBadge = () => {
     switch(vendor.brandStatus) {
@@ -31,6 +50,40 @@ export default function BrandProfileForm({ vendor }: { vendor: any }) {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "cover" | "logo") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (type === "cover") setUploadingCover(true);
+    else setUploadingLogo(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/vendor/upload", {
+        method: "POST",
+        body: formData
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (type === "cover") {
+          setDraftCoverUrl(data.url);
+        } else {
+          setDraftLogoUrl(data.url);
+        }
+      } else {
+        alert("Hiba történt a kép feltöltésekor.");
+      }
+    } catch (err) {
+      alert("Hálózati hiba!");
+    }
+    
+    if (type === "cover") setUploadingCover(false);
+    else setUploadingLogo(false);
+  };
+
   const handleSaveDraft = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setLoading(true);
@@ -39,11 +92,19 @@ export default function BrandProfileForm({ vendor }: { vendor: any }) {
       const res = await fetch("/api/vendor/brand", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draftDescription, draftLogoUrl: null, draftCoverUrl: null })
+        body: JSON.stringify({ 
+          draftDescription, 
+          draftShortDescription, 
+          draftLogoUrl, 
+          draftCoverUrl 
+        })
       });
       if (res.ok) {
         alert("Vázlat mentve!");
         setSavedDescription(draftDescription);
+        setSavedShortDescription(draftShortDescription);
+        setSavedCoverUrl(draftCoverUrl);
+        setSavedLogoUrl(draftLogoUrl);
         router.refresh();
       } else {
         const err = await res.json();
@@ -58,6 +119,9 @@ export default function BrandProfileForm({ vendor }: { vendor: any }) {
   const handleDiscardChanges = () => {
     if (confirm("Biztosan elveted a nem mentett módosításokat?")) {
       setDraftDescription(savedDescription);
+      setDraftShortDescription(savedShortDescription);
+      setDraftCoverUrl(savedCoverUrl);
+      setDraftLogoUrl(savedLogoUrl);
     }
   };
 
@@ -108,7 +172,6 @@ export default function BrandProfileForm({ vendor }: { vendor: any }) {
     setSubmitting(false);
   };
 
-  // Jodit configuration
   const config = {
     readonly: isPending,
     height: 600,
@@ -200,6 +263,108 @@ export default function BrandProfileForm({ vendor }: { vendor: any }) {
             </div>
           </div>
 
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-border/50 bg-white">
+            {/* Borítókép feltöltés */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Borítókép</label>
+              <div className="flex items-start gap-4">
+                <div className="w-full h-32 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden relative">
+                  {draftCoverUrl ? (
+                    <img src={draftCoverUrl} alt="Cover" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-gray-400 text-sm">Nincs borítókép feltöltve</span>
+                  )}
+                  {uploadingCover && (
+                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                      <span className="text-sm font-bold text-primary">Feltöltés...</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <label className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg cursor-pointer text-sm font-medium transition-colors text-center shadow-sm">
+                    Kép kiválasztása
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, "cover")}
+                      disabled={isPending || uploadingCover}
+                    />
+                  </label>
+                  {draftCoverUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setDraftCoverUrl("")}
+                      disabled={isPending}
+                      className="text-red-500 hover:text-red-700 text-sm font-medium"
+                    >
+                      Kép törlése
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Logó feltöltés */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Logó / Kisebb kép</label>
+              <div className="flex items-start gap-4">
+                <div className="w-32 h-32 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden relative shrink-0">
+                  {draftLogoUrl ? (
+                    <img src={draftLogoUrl} alt="Logo" className="w-full h-full object-contain bg-white" />
+                  ) : (
+                    <span className="text-gray-400 text-xs text-center px-2">Nincs logó</span>
+                  )}
+                  {uploadingLogo && (
+                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-full">
+                      <span className="text-xs font-bold text-primary">Feltöltés...</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2 w-full mt-4">
+                  <label className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg cursor-pointer text-sm font-medium transition-colors text-center shadow-sm block">
+                    Kép kiválasztása
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, "logo")}
+                      disabled={isPending || uploadingLogo}
+                    />
+                  </label>
+                  {draftLogoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setDraftLogoUrl("")}
+                      disabled={isPending}
+                      className="text-red-500 hover:text-red-700 text-sm font-medium text-center block w-full"
+                    >
+                      Kép törlése
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 border-b border-border/50 bg-white">
+            <label className="block text-sm font-bold text-gray-700 mb-2">
+              Rövid leírás (Listanézet az UNAS-ban)
+            </label>
+            <p className="text-xs text-gray-500 mb-3">
+              Ez a pár mondatos szöveg fog megjelenni a "Manufaktúrák" oldalon a listában, a logód vagy borítóképed alatt. (Max. 300 karakter)
+            </p>
+            <textarea 
+              value={draftShortDescription}
+              onChange={(e) => setDraftShortDescription(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none text-gray-800"
+              rows={3}
+              maxLength={300}
+              placeholder="Pl.: Családi gazdaságunk generációk óta foglalkozik kézműves sajtok készítésével a Bükk szívében..."
+              disabled={isPending}
+            />
+          </div>
+
           <div className="p-0 bg-white">
             <JoditEditor
               value={draftDescription}
@@ -255,16 +420,57 @@ export default function BrandProfileForm({ vendor }: { vendor: any }) {
             </div>
             
             {/* Modal Body - Simple Rich Text Render */}
-            <div className="flex-1 overflow-y-auto bg-gray-100 p-8">
-              <div className="max-w-4xl mx-auto bg-white rounded-3xl p-10 shadow-lg">
-                {draftDescription ? (
-                  <div 
-                    className="prose prose-lg text-gray-800 max-w-none w-full"
-                    dangerouslySetInnerHTML={{ __html: draftDescription }}
-                  />
-                ) : (
-                  <p className="text-gray-500 italic text-center">A márkaoldal még üres.</p>
-                )}
+            <div className="flex-1 overflow-y-auto bg-gray-100 p-8 space-y-8">
+              
+              {/* List View Preview */}
+              <div>
+                <h3 className="text-gray-500 font-bold uppercase tracking-wider text-sm mb-4">Így fog megjelenni a listában (Kártya)</h3>
+                <div className="bg-white rounded-xl shadow-md overflow-hidden max-w-sm mx-auto border border-gray-200">
+                  <div className="h-48 bg-gray-200 relative">
+                    {(draftCoverUrl || draftLogoUrl) ? (
+                      <img src={draftCoverUrl || draftLogoUrl} alt="Cover" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-400">Nincs kép</div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <h4 className="font-bold text-lg text-gray-900 mb-2">{vendor.brandName || vendor.companyName}</h4>
+                    <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
+                      {draftShortDescription || <span className="italic text-gray-400">Nincs megadva rövid leírás...</span>}
+                    </p>
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <button className="text-sm font-bold text-primary w-full text-center">Olvass tovább &gt;</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-gray-500 font-bold uppercase tracking-wider text-sm mb-4">Így fog megjelenni a teljes márkaoldal</h3>
+                <div className="max-w-4xl mx-auto bg-white rounded-3xl p-10 shadow-lg">
+                  <div className="myfine-brand-page" style={{fontFamily: 'inherit', maxWidth: '800px', margin: '0 auto'}}>
+                    {draftCoverUrl && (
+                      <div className="cover-image" style={{width: '100%', height: '300px', overflow: 'hidden', borderRadius: '8px', marginBottom: '20px'}}>
+                        <img src={draftCoverUrl} style={{width: '100%', height: '100%', objectFit: 'cover'}} alt="Cover" />
+                      </div>
+                    )}
+                    <div className="brand-header" style={{display: 'flex', alignItems: 'center', marginBottom: '30px'}}>
+                      {draftLogoUrl && (
+                        <img src={draftLogoUrl} style={{width: '100px', height: '100px', borderRadius: '50%', objectFit: 'contain', marginRight: '20px', border: '1px solid #eaeaea', background: '#fff'}} alt="Logo" />
+                      )}
+                      <h1 style={{margin: 0, fontSize: '2rem', color: '#333'}}>{vendor.brandName || vendor.companyName}</h1>
+                    </div>
+                    {draftDescription ? (
+                      <div 
+                        className="brand-description prose prose-lg text-gray-800 max-w-none w-full"
+                        style={{lineHeight: '1.6', color: '#444', fontSize: '1.1rem', whiteSpace: 'pre-wrap'}}
+                        dangerouslySetInnerHTML={{ __html: draftDescription }}
+                      />
+                    ) : (
+                      <p className="text-gray-500 italic text-center">A márkaoldal még üres.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

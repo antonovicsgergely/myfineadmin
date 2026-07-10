@@ -16,7 +16,7 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
       include: { vendor: true }
     });
 
-    if (!post || post.vendor.userId !== session.user.id) {
+    if (!post || post.vendor?.userId !== session.user.id) {
       return NextResponse.json({ error: "Bejegyzés nem található." }, { status: 404 });
     }
 

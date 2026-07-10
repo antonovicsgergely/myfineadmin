@@ -7,7 +7,12 @@ import { isValidEmail, isValidImageUrl, sanitizeString, MAX_NAME_LENGTH } from "
 export async function PUT(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+
+    // 🔒 Pozitív allowlist — csak ADMIN és SUPERADMIN férhet hozzá
+    if (
+      !session?.user?.id ||
+      (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -47,7 +52,7 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({ message: "Személyes profil sikeresen frissítve!", user: updatedUser });
   } catch (error) {
-    console.error("Account update error:", error);
+    console.error("Admin account update error:", error);
     return NextResponse.json(
       { error: "Hiba történt a profil frissítésekor." },
       { status: 500 }

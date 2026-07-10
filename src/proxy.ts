@@ -6,14 +6,20 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const { token } = req.nextauth;
 
-    // Ha admin útvonalat kér, és nem SUPERADMIN vagy ADMIN
+    // ─── Oldalak védelme ───
     if (pathname.startsWith("/admin") && token?.role !== "ADMIN" && token?.role !== "SUPERADMIN") {
       return NextResponse.rewrite(new URL("/unauthorized", req.url));
     }
 
-    // Ha gyártói útvonalat kér (dashboard), és a felhasználó nem VENDOR (és nem is admin)
     if (pathname.startsWith("/dashboard") && token?.role !== "VENDOR" && token?.role !== "ADMIN" && token?.role !== "SUPERADMIN") {
       return NextResponse.rewrite(new URL("/unauthorized", req.url));
+    }
+
+    // ─── API route-ok védelme ───
+    if (pathname.startsWith("/api/admin")) {
+      if (token?.role !== "SUPERADMIN" && token?.role !== "ADMIN") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
     }
 
     return NextResponse.next();
@@ -26,5 +32,10 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/api/vendor/:path*"
+  ],
 };

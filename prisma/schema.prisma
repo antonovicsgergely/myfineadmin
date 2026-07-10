@@ -30,10 +30,12 @@ model Vendor {
   companyName     String
   brandName       String?
   description     String?
+  shortDescription String?
   logoUrl         String?
   coverUrl        String?
   
   draftDescription String?
+  draftShortDescription String?
   draftLogoUrl     String?
   draftCoverUrl    String?
   brandStatus      String @default("DRAFT") // DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED
@@ -163,17 +165,23 @@ model SubscriptionPackage {
 
 model BlogPost {
   id              String    @id @default(cuid())
-  vendorId        String
-  vendor          Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId        String?
+  vendor          Vendor?   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   
   title           String?
   content         String?
+  coverUrl        String?
+  shortDescription String?
+  
   draftTitle      String?
   draftContent    String?
+  draftCoverUrl   String?
+  draftShortDescription String?
   
-  status          String    @default("DRAFT") // DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED
+  status          String    @default("DRAFT") // DRAFT, PENDING_APPROVAL, PUBLISHED, REJECTED, INACTIVE
   rejectReason    String?
   publishedAt     DateTime?
+  unasPageId      String?
   
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

@@ -14,18 +14,25 @@ export default function BlogForm({ post }: { post: any }) {
   
   const initialTitle = post.draftTitle || post.title || "";
   const initialContent = post.draftContent || post.content || "";
+  const initialCoverUrl = post.draftCoverUrl || post.coverUrl || "";
+  const initialShortDesc = post.draftShortDescription || post.shortDescription || "";
   
   const [savedTitle, setSavedTitle] = useState(initialTitle);
   const [savedContent, setSavedContent] = useState(initialContent);
+  const [savedCoverUrl, setSavedCoverUrl] = useState(initialCoverUrl);
+  const [savedShortDesc, setSavedShortDesc] = useState(initialShortDesc);
 
   const [draftTitle, setDraftTitle] = useState(savedTitle);
   const [draftContent, setDraftContent] = useState(savedContent);
+  const [draftCoverUrl, setDraftCoverUrl] = useState(savedCoverUrl);
+  const [draftShortDesc, setDraftShortDesc] = useState(savedShortDesc);
   const [showPreview, setShowPreview] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const router = useRouter();
   
   const isPending = post.status === "PENDING_APPROVAL";
-  const isDirty = draftTitle !== savedTitle || draftContent !== savedContent;
+  const isDirty = draftTitle !== savedTitle || draftContent !== savedContent || draftCoverUrl !== savedCoverUrl || draftShortDesc !== savedShortDesc;
 
   const getStatusBadge = () => {
     switch(post.status) {
@@ -36,6 +43,32 @@ export default function BlogForm({ post }: { post: any }) {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/vendor/upload", {
+        method: "POST",
+        body: formData
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setDraftCoverUrl(data.url);
+      } else {
+        alert("Hiba történt a kép feltöltésekor.");
+      }
+    } catch (err) {
+      alert("Hálózati hiba!");
+    }
+    setUploadingImage(false);
+  };
+
   const handleSaveDraft = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setLoading(true);
@@ -44,12 +77,19 @@ export default function BlogForm({ post }: { post: any }) {
       const res = await fetch(`/api/vendor/blog/${post.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draftTitle, draftContent })
+        body: JSON.stringify({ 
+          draftTitle, 
+          draftContent,
+          draftCoverUrl,
+          draftShortDescription: draftShortDesc
+        })
       });
       if (res.ok) {
         alert("Vázlat mentve!");
         setSavedTitle(draftTitle);
         setSavedContent(draftContent);
+        setSavedCoverUrl(draftCoverUrl);
+        setSavedShortDesc(draftShortDesc);
         router.refresh();
       } else {
         const err = await res.json();
@@ -65,6 +105,8 @@ export default function BlogForm({ post }: { post: any }) {
     if (confirm("Biztosan elveted a nem mentett módosításokat?")) {
       setDraftTitle(savedTitle);
       setDraftContent(savedContent);
+      setDraftCoverUrl(savedCoverUrl);
+      setDraftShortDesc(savedShortDesc);
     }
   };
 
@@ -200,27 +242,83 @@ export default function BlogForm({ post }: { post: any }) {
                 placeholder="Írd ide a blogposztod címét..."
               />
             </div>
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-gray-500">Formázd meg a bejegyzésed, szúrj be képeket!</p>
-              <button 
-                type="button" 
-                onClick={handleOptimizeAI}
-                disabled={optimizing || isPending}
-                className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md transition-all disabled:opacity-50"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                </svg>
-                {optimizing ? "Optimalizálás..." : "AI Asszisztens"}
-              </button>
             </div>
-          </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="col-span-1 space-y-2">
+                <label className="text-sm font-bold text-gray-700">Borítókép</label>
+                <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors h-48 overflow-hidden">
+                  {draftCoverUrl ? (
+                    <>
+                      <img src={draftCoverUrl} alt="Cover" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+                      <div className="relative z-10 bg-white/90 p-2 rounded-lg shadow-sm border border-gray-200 backdrop-blur-sm mt-auto w-full">
+                        <p className="text-xs font-bold text-gray-700 truncate mb-2">Kép feltöltve</p>
+                        {!isPending && (
+                          <label className="cursor-pointer text-xs bg-primary text-white py-1.5 px-3 rounded-md hover:bg-primary-hover inline-block w-full">
+                            Módosítás
+                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                          </label>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-gray-400 mb-2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                      </svg>
+                      <p className="text-xs text-gray-500 mb-3 px-2">Ajánlott méret: 800x600px vagy nagyobb</p>
+                      {!isPending && (
+                        <label className="cursor-pointer text-xs font-bold bg-gray-100 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">
+                          {uploadingImage ? "Feltöltés..." : "Kép kiválasztása"}
+                          <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                        </label>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
 
-          <div className="p-0 bg-white">
+              <div className="col-span-1 md:col-span-2 space-y-2">
+                <label className="text-sm font-bold text-gray-700 flex justify-between">
+                  <span>Rövid leírás (Bevezető)</span>
+                  <span className="text-xs font-normal text-gray-500">{draftShortDesc?.length || 0} / 250 karakter</span>
+                </label>
+                <textarea 
+                  value={draftShortDesc}
+                  onChange={(e) => setDraftShortDesc(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary/50 h-48 resize-none"
+                  placeholder="2-3 mondatos figyelemfelkeltő leírás, ami a listanézetekben fog megjelenni a kép mellett..."
+                  disabled={isPending}
+                  maxLength={250}
+                />
+              </div>
+            </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-end">
+              <label className="text-sm font-bold text-gray-700">Tartalom</label>
+              {!isPending && (
+                <button 
+                  type="button" 
+                  onClick={handleOptimizeAI}
+                  disabled={optimizing}
+                  className="text-xs bg-purple-50 text-purple-700 font-bold px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-100 flex items-center gap-1 transition-colors"
+                >
+                  {optimizing ? "Optimalizálás folyamatban..." : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                        <path fillRule="evenodd" d="M9.315 7.584C12.195 3.883 16.695 1.5 21.5 1.5c-1.5 4.805-3.883 9.305-7.584 12.185a16.477 16.477 0 01-4.601 2.455c-.2.083-.418.015-.551-.157l-1.025-1.332a.75.75 0 01.127-1.01l1.45-1.16zm-5.462 8.017a.75.75 0 00-.549-1.39l-2.023.633a.75.75 0 00-.472 1.107l1.042 1.636a.75.75 0 001.39-.55l-.633-2.023 1.245-.39v.003l-.001.984zm11.75-8.257l.001-1.077c0-.414-.336-.75-.75-.75h-1.078c-.287.97-.66 1.905-1.11 2.793h1.86a.75.75 0 00.75-.75v-1.859c-.888.45-1.823.823-2.793 1.11v1.077c0 .414.336.75.75.75h1.078c.287-.97.66-1.905 1.11-2.793v-1.078c0-.414-.336-.75-.75-.75h-1.86c.888-.45 1.823-.823 2.793-1.11v1.859c0 .414.336.75.75.75h1.078c.287.97.66 1.905 1.11 2.793z" clipRule="evenodd" />
+                      </svg>
+                      AI Szövegjavítás
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <JoditEditor
               value={draftContent}
               config={config}
-              onBlur={newContent => setDraftContent(newContent)}
+              onBlur={(newContent: string) => setDraftContent(newContent)}
             />
           </div>
 
@@ -266,10 +364,25 @@ export default function BlogForm({ post }: { post: any }) {
               <button onClick={() => setShowPreview(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500">✕</button>
             </div>
             <div className="flex-1 overflow-y-auto bg-gray-100 p-8">
-              <div className="max-w-3xl mx-auto bg-white rounded-3xl p-10 shadow-lg">
-                <h1 className="text-4xl font-extrabold text-gray-900 mb-8" style={{ fontFamily: "'Fraunces', serif" }}>
+              <div className="max-w-3xl mx-auto bg-white rounded-3xl p-10 shadow-lg mt-8 mb-8">
+                {draftCoverUrl && (
+                  <div className="w-full h-80 rounded-2xl overflow-hidden mb-8 shadow-sm">
+                    <img src={draftCoverUrl} alt="Cover" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                
+                <h1 className="text-4xl font-extrabold text-gray-900 mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
                   {draftTitle}
                 </h1>
+
+                {draftShortDesc && (
+                  <div className="mb-8 p-6 bg-gray-50 border-l-4 border-primary rounded-r-xl">
+                    <p className="text-xl font-medium text-gray-700 italic leading-relaxed">
+                      {draftShortDesc}
+                    </p>
+                  </div>
+                )}
+
                 {draftContent ? (
                   <div 
                     className="prose prose-lg text-gray-800 max-w-none w-full"

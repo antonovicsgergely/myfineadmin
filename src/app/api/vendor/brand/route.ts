@@ -11,12 +11,13 @@ export async function PUT(req: Request) {
     }
 
     const data = await req.json();
-    const { draftDescription, draftLogoUrl, draftCoverUrl } = data;
+    const { draftDescription, draftShortDescription, draftLogoUrl, draftCoverUrl } = data;
 
     const updatedVendor = await prisma.vendor.update({
       where: { userId: session.user.id },
       data: {
         draftDescription,
+        draftShortDescription,
         draftLogoUrl,
         draftCoverUrl,
         brandStatus: "DRAFT"

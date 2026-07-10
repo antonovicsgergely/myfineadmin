@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+import { syncBlogPostToUnas } from "@/lib/unas/pages";
+
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -53,9 +55,20 @@ export async function POST(req: Request) {
           status: "PUBLISHED",
           title: post.draftTitle,
           content: post.draftContent,
+          coverUrl: post.draftCoverUrl,
+          shortDescription: post.draftShortDescription,
           publishedAt: new Date()
         }
       });
+      
+      try {
+        await syncBlogPostToUnas(postId);
+      } catch (syncError: any) {
+        console.error("Hiba az UNAS szinkronizáció során:", syncError);
+        return NextResponse.json({ message: "Blog sikeresen publikálva, de az UNAS szinkronizáció sikertelen: " + syncError.message });
+      }
+
+      return NextResponse.json({ success: true, message: "Blog sikeresen publikálva és szinkronizálva az UNAS-szal!" });
     } else if (action === "REJECT") {
       await prisma.blogPost.update({
         where: { id: postId },

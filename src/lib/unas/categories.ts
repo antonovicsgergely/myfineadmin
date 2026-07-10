@@ -32,7 +32,8 @@ export async function syncCategoriesFromUnas(): Promise<{ synced: number; errors
     for (const block of categoryBlocks) {
       const id = extractXmlValue(block, "Id");
       const name = extractXmlValue(block, "Name");
-      const parentId = extractXmlValue(block, "Parent");
+      const parentBlock = extractXmlValue(block, "Parent");
+      const parentId = parentBlock ? extractXmlValue(parentBlock, "Id") : null;
 
       if (!id || !name) {
         errors.push(`Hiányos kategória adat: ID=${id}, Name=${name}`);
@@ -54,10 +55,33 @@ export async function syncCategoriesFromUnas(): Promise<{ synced: number; errors
       return 0;
     });
 
-    for (const cat of sorted) {
+    // Third pass: Filter to only include 'Termékek' (100001) and its descendants
+    const ROOT_CATEGORY_ID = "100001";
+    const validCategoryIds = new Set<string>();
+    
+    // Check if root exists
+    const rootExists = unasCategories.some(c => c.unasId === ROOT_CATEGORY_ID);
+    if (rootExists) {
+      validCategoryIds.add(ROOT_CATEGORY_ID);
+      
+      let added = true;
+      while (added) {
+        added = false;
+        for (const cat of unasCategories) {
+          if (!validCategoryIds.has(cat.unasId) && cat.parentUnasId && validCategoryIds.has(cat.parentUnasId)) {
+            validCategoryIds.add(cat.unasId);
+            added = true;
+          }
+        }
+      }
+    }
+
+    const filteredCategories = sorted.filter(c => validCategoryIds.has(c.unasId));
+
+    for (const cat of filteredCategories) {
+      let parentId: string | null = null;
       try {
         // Find parent's local ID if exists
-        let parentId: string | null = null;
         if (cat.parentUnasId) {
           const parentCat = await prisma.category.findUnique({
             where: { unasId: cat.parentUnasId },
@@ -89,11 +113,13 @@ export async function syncCategoriesFromUnas(): Promise<{ synced: number; errors
               update: {
                 name: `${cat.name} (${cat.unasId})`,
                 isActive: true,
+                parentId,
               },
               create: {
                 unasId: cat.unasId,
                 name: `${cat.name} (${cat.unasId})`,
                 isActive: true,
+                parentId,
               },
             });
             synced++;
@@ -104,6 +130,19 @@ export async function syncCategoriesFromUnas(): Promise<{ synced: number; errors
           errors.push(`Kategória mentési hiba: ${cat.name} — ${err.message}`);
         }
       }
+    }
+
+    // Cleanup old categories that are not in the valid set
+    if (validCategoryIds.size > 0) {
+      await prisma.category.updateMany({
+        where: { 
+          OR: [
+            { unasId: { notIn: Array.from(validCategoryIds) } },
+            { unasId: null }
+          ]
+        },
+        data: { isActive: false },
+      });
     }
 
     // Log the sync

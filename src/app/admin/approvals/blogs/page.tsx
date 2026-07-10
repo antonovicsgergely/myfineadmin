@@ -37,14 +37,15 @@ export default function BlogApprovalsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postId, action, rejectReason })
       });
+      const data = await res.json();
       if (res.ok) {
-        alert(action === "APPROVE" ? "Sikeresen publikálva!" : "Elutasítva.");
+        alert(data.message || (action === "APPROVE" ? "Sikeresen publikálva!" : "Elutasítva."));
         setPreviewPost(null);
         setIsRejecting(false);
         setRejectReason("");
         fetchPosts();
       } else {
-        alert("Hiba történt.");
+        alert(data.error || data.message || "Hiba történt.");
       }
     } catch (err) {
       alert("Hálózati hiba!");

@@ -55,6 +55,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          image: user.image,
         };
       },
     }),
@@ -64,6 +65,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.image = user.image;
       }
       return token;
     },
@@ -71,6 +73,7 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.image = token.image as string | null | undefined;
       }
       return session;
     },
@@ -80,6 +83,17 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 24 óra — utána újra kell jelentkezni
   },
-  secret: process.env.NEXTAUTH_SECRET || "default_super_secret_for_dev_only",
+  secret: process.env.NEXTAUTH_SECRET,
 };
+
+// 🔒 Induláskor ellenőrizzük, hogy a secret be van-e állítva.
+// Ha nincs, a szerver NE induljon el, mert a JWT tokenek hamisíthatóvá válnának.
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error(
+    "NEXTAUTH_SECRET környezeti változó nincs beállítva! " +
+    "Állítsd be az .env fájlban egy erős, véletlenszerű értékkel."
+  );
+}
+

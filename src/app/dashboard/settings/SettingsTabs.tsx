@@ -2,12 +2,78 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import ImageCropperModal from "@/components/ImageCropperModal";
 
 export default function SettingsTabs({ vendor }: { vendor: any }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("company");
   const [loading, setLoading] = useState(false);
   const [isEditingAccount, setIsEditingAccount] = useState(false);
-  const router = useRouter();
+  const [success, setSuccess] = useState("");
+  
+  // Crop state
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImageSrc, setCropperImageSrc] = useState("");
+
+  // 🔒 Fájl kiválasztás → cropper megnyitása (nem töltünk fel azonnal)
+  const handleFileChangeForCrop = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Előző object URL felszabadítása ha volt
+    if (cropperImageSrc) {
+      URL.revokeObjectURL(cropperImageSrc);
+    }
+    
+    const url = URL.createObjectURL(file);
+    setCropperImageSrc(url);
+    setCropperOpen(true);
+    
+    // Reset the input so the same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setCropperOpen(false);
+    
+    // 🔒 Felszabadítjuk az object URL-t, mivel a cropper már nem kell
+    if (cropperImageSrc) {
+      URL.revokeObjectURL(cropperImageSrc);
+      setCropperImageSrc("");
+    }
+    
+    setLoading(true);
+    
+    const uploadData = new FormData();
+    uploadData.append("file", croppedBlob, "profile.jpg");
+    
+    try {
+      const res = await fetch("/api/vendor/upload", { method: "POST", body: uploadData });
+      if (res.ok) {
+        const data = await res.json();
+        const input = document.getElementById('user-image-input') as HTMLInputElement;
+        if (input) input.value = data.url;
+        
+        // Mentjük az API-n keresztül (nem mutáljuk közvetlenül a prop-ot)
+        await fetch("/api/vendor/settings/account", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            name: vendor.user.name, 
+            email: vendor.user.email,
+            image: data.url
+          }),
+        });
+        router.refresh();
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || "Hiba történt a kép feltöltésekor.");
+      }
+    } catch (err) {
+      alert("Hálózati hiba a kép feltöltésekor.");
+    }
+    setLoading(false);
+  };
 
   const tabs = [
     { id: "company", label: "Cégadatok és Pénzügyi Információk" },
@@ -120,8 +186,9 @@ export default function SettingsTabs({ vendor }: { vendor: any }) {
   };
 
   return (
-    <div className="glass rounded-2xl shadow-sm border border-border/50 overflow-hidden">
-      {/* Tabs Header */}
+    <>
+      <div className="glass rounded-2xl shadow-sm border border-border/50 overflow-hidden">
+        {/* Tabs Header */}
       <div className="flex border-b border-border overflow-x-auto">
         {tabs.map((tab) => (
           <button
@@ -198,7 +265,7 @@ export default function SettingsTabs({ vendor }: { vendor: any }) {
           <div className="space-y-12">
             
             {/* Személyes Adatok Form */}
-            <form onSubmit={handleAccountSave} className="space-y-6 max-w-lg">
+            <form onSubmit={handleAccountSave} className="space-y-6 max-w-2xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-foreground">Személyes Adatok</h3>
                 {!isEditingAccount && (
@@ -214,28 +281,60 @@ export default function SettingsTabs({ vendor }: { vendor: any }) {
                   </button>
                 )}
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground/80 mb-2">Teljes Név</label>
-                <input 
-                  name="name" 
-                  defaultValue={vendor.user?.name || ""} 
-                  required 
-                  disabled={!isEditingAccount}
-                  className={`w-full px-4 py-3 rounded-xl transition-all outline-none ${isEditingAccount ? 'bg-background/50 border border-border focus:border-primary text-foreground' : 'bg-transparent border-transparent text-foreground/80 font-medium px-0 py-1'}`} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground/80 mb-2">E-mail cím</label>
-                <input 
-                  name="email" 
-                  type="email" 
-                  defaultValue={vendor.user?.email || ""} 
-                  required 
-                  disabled={!isEditingAccount}
-                  className={`w-full px-4 py-3 rounded-xl transition-all outline-none ${isEditingAccount ? 'bg-background/50 border border-border focus:border-primary text-foreground' : 'bg-transparent border-transparent text-foreground/80 font-medium px-0 py-1'}`} 
-                />
-                {isEditingAccount && <p className="text-xs text-foreground/50 mt-2">Ezzel az e-mail címmel tudsz bejelentkezni a jövőben.</p>}
+
+              <div className="flex flex-col md:flex-row gap-8 items-start mb-6">
+                {/* Képfeltöltő */}
+                <div className="flex flex-col items-center gap-3 flex-shrink-0">
+                  <div className={`w-32 h-32 relative rounded-full overflow-hidden border-2 border-dashed ${isEditingAccount ? 'border-primary/50' : 'border-border/50'} bg-background/50 group`}>
+                    {vendor.user?.image ? (
+                      <img src={vendor.user.image} className="w-full h-full object-cover" alt="Profile" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-foreground/40">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 mb-1">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                        </svg>
+                        <span className="text-xs">Nincs kép</span>
+                      </div>
+                    )}
+                    <input type="hidden" name="image" id="user-image-input" defaultValue={vendor.user?.image || ""} />
+                  </div>
+                  
+                  <label className="cursor-pointer text-sm font-semibold text-primary hover:text-primary-hover transition-colors px-4 py-2 border border-primary/20 hover:border-primary/50 rounded-full bg-primary/5 hover:bg-primary/10">
+                    {loading ? "Feltöltés..." : "Kép kiválasztása"}
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*" 
+                      disabled={loading}
+                      onChange={handleFileChangeForCrop}
+                    />
+                  </label>
+                </div>
+
+                <div className="flex-1 space-y-4 w-full">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground/80 mb-2">Teljes Név</label>
+                    <input 
+                      name="name" 
+                      defaultValue={vendor.user?.name || ""} 
+                      required 
+                      disabled={!isEditingAccount}
+                      className={`w-full px-4 py-3 rounded-xl transition-all outline-none ${isEditingAccount ? 'bg-background/50 border border-border focus:border-primary text-foreground' : 'bg-transparent border-transparent text-foreground/80 font-medium px-0 py-1'}`} 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground/80 mb-2">E-mail cím</label>
+                    <input 
+                      name="email" 
+                      type="email" 
+                      defaultValue={vendor.user?.email || ""} 
+                      required 
+                      disabled={!isEditingAccount}
+                      className={`w-full px-4 py-3 rounded-xl transition-all outline-none ${isEditingAccount ? 'bg-background/50 border border-border focus:border-primary text-foreground' : 'bg-transparent border-transparent text-foreground/80 font-medium px-0 py-1'}`} 
+                    />
+                    {isEditingAccount && <p className="text-xs text-foreground/50 mt-2">Ezzel az e-mail címmel tudsz bejelentkezni a jövőben.</p>}
+                  </div>
+                </div>
               </div>
 
               {isEditingAccount && (
@@ -347,6 +446,15 @@ export default function SettingsTabs({ vendor }: { vendor: any }) {
         )}
 
       </div>
-    </div>
+      </div>
+      
+      {cropperOpen && (
+        <ImageCropperModal
+          imageSrc={cropperImageSrc}
+          onClose={() => setCropperOpen(false)}
+          onCropComplete={handleCropComplete}
+        />
+      )}
+    </>
   );
 }

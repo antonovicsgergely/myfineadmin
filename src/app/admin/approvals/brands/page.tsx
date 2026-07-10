@@ -146,17 +146,45 @@ export default function BrandApprovalsPage() {
               </div>
             )}
 
-            {/* Modal Body - Simple Rich Text Render */}
-            <div className="flex-1 overflow-y-auto bg-gray-100 p-8">
-              <div className="max-w-4xl mx-auto bg-white rounded-3xl p-10 shadow-lg">
-                {previewVendor.draftDescription ? (
-                  <div 
-                    className="prose prose-lg text-gray-800 max-w-none w-full"
-                    dangerouslySetInnerHTML={{ __html: previewVendor.draftDescription }}
-                  />
-                ) : (
-                  <p className="text-gray-500 italic text-center">A márkaoldal még üres.</p>
-                )}
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto bg-gray-100 p-8 space-y-8">
+              
+              {/* List View Preview */}
+              <div>
+                <h3 className="text-gray-500 font-bold uppercase tracking-wider text-sm mb-4">Listanézet (Kártya) előnézete</h3>
+                <div className="bg-white rounded-xl shadow-md overflow-hidden max-w-sm mx-auto border border-gray-200">
+                  <div className="h-48 bg-gray-200 relative">
+                    {(previewVendor.draftCoverUrl || previewVendor.coverUrl || previewVendor.draftLogoUrl || previewVendor.logoUrl) ? (
+                      <img src={previewVendor.draftCoverUrl || previewVendor.coverUrl || previewVendor.draftLogoUrl || previewVendor.logoUrl} alt="Cover" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-gray-400">Nincs kép</div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <h4 className="font-bold text-lg text-gray-900 mb-2">{previewVendor.brandName || previewVendor.companyName}</h4>
+                    <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
+                      {previewVendor.draftShortDescription || <span className="italic text-gray-400">Nincs megadva rövid leírás...</span>}
+                    </p>
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <button className="text-sm font-bold text-primary w-full text-center">Olvass tovább &gt;</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Full Page Preview */}
+              <div>
+                <h3 className="text-gray-500 font-bold uppercase tracking-wider text-sm mb-4">Teljes Márkaoldal</h3>
+                <div className="max-w-4xl mx-auto bg-white rounded-3xl p-10 shadow-lg">
+                  {previewVendor.draftDescription ? (
+                    <div 
+                      className="prose prose-lg text-gray-800 max-w-none w-full"
+                      dangerouslySetInnerHTML={{ __html: previewVendor.draftDescription }}
+                    />
+                  ) : (
+                    <p className="text-gray-500 italic text-center">A márkaoldal még üres.</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
