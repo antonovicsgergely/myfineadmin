@@ -209,6 +209,10 @@ export async function syncBlogPostToUnas(blogId: string): Promise<string> {
   
   htmlContent = htmlContent.replace(/src="\/uploads\//g, `src="${baseUrl}/uploads/`);
 
+  const imageXml = coverUrl
+    ? `\n    <Image>\n      <Lead><![CDATA[${coverUrl}]]></Lead>\n    </Image>`
+    : "";
+
   const contentXml = `<?xml version="1.0" encoding="UTF-8" ?>
 <PageContents>
   <PageContent>
@@ -217,8 +221,9 @@ export async function syncBlogPostToUnas(blogId: string): Promise<string> {
     <Title>${cdata(sanitizeCdata(title))}</Title>
     <Type>blog</Type>
     <Published>${isPublished}</Published>
-    <HideDate>yes</HideDate>
+    <HideDate>yes</HideDate>${imageXml}
     <BlogContent>
+      <Lead><![CDATA[${sanitizeCdata(safeShortDesc)}]]></Lead>
       <Text>${cdata(sanitizeCdata(htmlContent))}</Text>
     </BlogContent>
   </PageContent>
