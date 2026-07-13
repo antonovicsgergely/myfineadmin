@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { existsSync } from "fs";
 import crypto from "crypto";
+import path from "path";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { put } from "@vercel/blob";
 import {
   MAX_UPLOAD_SIZE_BYTES,
   ALLOWED_IMAGE_MIME_TYPES,
@@ -50,12 +49,6 @@ export async function POST(req: Request) {
     // 🔒 Biztonságos fájlnév generálás — crypto.randomUUID() nem kiszámítható
     const filename = `${crypto.randomUUID()}${ext}`;
 
-    // public/uploads könyvtár létrehozása, ha nem létezik
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // 🔒 Magic bytes ellenőrzés — biztosítjuk, hogy a fájl tényleg kép
@@ -66,10 +59,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const filePath = path.join(uploadDir, filename);
-    await writeFile(filePath, buffer);
+    // Vercel Blob feltöltés a lokális mentés helyett
+    const blob = await put(filename, buffer, {
+      access: "public",
+      contentType: file.type,
+    });
 
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    return NextResponse.json({ url: blob.url });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json({ error: "Szerverhiba feltöltés közben." }, { status: 500 });
