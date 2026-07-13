@@ -218,12 +218,12 @@ export async function syncBlogPostToUnas(blogId: string): Promise<string> {
   <PageContent>
     <Action>${unasPageId ? 'modify' : 'add'}</Action>
     ${unasPageId ? `<Id>${unasPageId}</Id>` : ''}
-    <Title>${cdata(sanitizeCdata(title))}</Title>
+    <Title>${cdata(sanitizeCdata(title))}</Title>${imageXml}
     <Type>blog</Type>
     <Published>${isPublished}</Published>
-    <HideDate>yes</HideDate>${imageXml}
+    <HideDate>yes</HideDate>
     <BlogContent>
-      <Lead><![CDATA[${sanitizeCdata(safeShortDesc)}]]></Lead>
+      <Lead><![CDATA[${coverUrl ? `<img src="${escapeHtml(coverUrl)}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px;" alt="Cover" />` : ''}${sanitizeCdata(safeShortDesc)}]]></Lead>
       <Text>${cdata(sanitizeCdata(htmlContent))}</Text>
     </BlogContent>
   </PageContent>
