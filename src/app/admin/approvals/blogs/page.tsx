@@ -153,9 +153,33 @@ export default function BlogApprovalsPage() {
             {/* Modal Body - Render */}
             <div className="flex-1 overflow-y-auto bg-gray-100 p-8">
               <div className="max-w-4xl mx-auto bg-white rounded-3xl p-10 shadow-lg">
-                <h1 className="text-4xl font-extrabold text-gray-900 mb-8" style={{ fontFamily: "'Fraunces', serif" }}>
+                {/* Title */}
+                <h1 className="text-4xl font-extrabold text-gray-900 mb-6" style={{ fontFamily: "'Fraunces', serif" }}>
                   {previewPost.draftTitle}
                 </h1>
+                
+                {/* Cover Image */}
+                {previewPost.draftCoverUrl && (
+                  <img 
+                    src={previewPost.draftCoverUrl} 
+                    alt="Cover" 
+                    className="w-full max-h-[450px] object-cover rounded-xl mb-6" 
+                  />
+                )}
+                
+                {/* Short Description */}
+                {previewPost.draftShortDescription && (
+                  <div className="text-lg font-medium italic text-gray-700 mb-6">
+                    {previewPost.draftShortDescription}
+                  </div>
+                )}
+
+                {/* Author and Date */}
+                <div className="text-sm text-gray-500 mb-8 pb-4 border-b border-gray-100">
+                  Írta: <strong className="text-gray-700">{previewPost.vendor?.brandName || previewPost.vendor?.companyName}</strong> | {new Date(previewPost.updatedAt).toLocaleDateString("hu-HU")}
+                </div>
+
+                {/* Content */}
                 {previewPost.draftContent ? (
                   <div 
                     className="prose prose-lg text-gray-800 max-w-none w-full"
