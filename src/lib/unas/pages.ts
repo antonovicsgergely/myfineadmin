@@ -195,12 +195,9 @@ export async function syncBlogPostToUnas(blogId: string): Promise<string> {
   
   let htmlContent = `
     <div class="myfine-blog-post" style="font-family: inherit; max-width: 800px; margin: 0 auto; line-height: 1.6; color: #333;">
-      ${coverUrl ? `<img src="${escapeHtml(coverUrl)}" alt="${safeTitle}" style="width: 100%; max-height: 500px; object-fit: cover; border-radius: 12px; margin-bottom: 20px;" />` : ''}
-      <h1 style="font-size: 2.2rem; color: #222; margin-bottom: 10px;">${safeTitle}</h1>
-      <div style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">
+      <div style="font-size: 0.9rem; color: #666; margin-bottom: 20px; margin-top: 10px;">
         Írta: <strong>${safeAuthor}</strong> | ${new Date(blog.publishedAt || blog.createdAt).toLocaleDateString("hu-HU")}
       </div>
-      ${safeShortDesc ? `<div style="font-size: 1.2rem; font-weight: 600; color: #444; margin-bottom: 30px; font-style: italic;">${safeShortDesc}</div>` : ''}
       <div class="blog-content" style="font-size: 1.1rem; white-space: pre-wrap;">
         ${blog.content || blog.draftContent || ""}
       </div>
@@ -223,7 +220,7 @@ export async function syncBlogPostToUnas(blogId: string): Promise<string> {
     <Published>${isPublished}</Published>
     <HideDate>yes</HideDate>
     <BlogContent>
-      <Lead><![CDATA[${coverUrl ? `<img src="${escapeHtml(coverUrl)}" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 15px;" alt="Cover" />` : ''}${sanitizeCdata(safeShortDesc)}]]></Lead>
+      <Lead><![CDATA[${coverUrl ? `<img src="${escapeHtml(coverUrl)}" style="width: 100%; max-height: 450px; height: auto; object-fit: cover; border-radius: 12px; margin-bottom: 15px;" alt="${safeTitle}" />` : ''}<div style="font-size: 1.1rem; font-weight: 500; font-style: italic; color: #444;">${sanitizeCdata(safeShortDesc)}</div>]]></Lead>
       <Text>${cdata(sanitizeCdata(htmlContent))}</Text>
     </BlogContent>
   </PageContent>
