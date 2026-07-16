@@ -39,8 +39,13 @@ export const authOptions: NextAuthOptions = {
             where: { userId: user.id },
           });
 
-          if (vendor && vendor.status !== "APPROVED") {
-            throw new Error("A fiókod még jóváhagyásra vár, vagy elutasításra került.");
+          if (vendor) {
+            if (vendor.status === "SUSPENDED") {
+              throw new Error("A fiókod átmenetileg fel lett függesztve. Kérlek, vedd fel a kapcsolatot az adminisztrátorral.");
+            }
+            if (vendor.status !== "APPROVED") {
+              throw new Error("A fiókod még jóváhagyásra vár, vagy elutasításra került.");
+            }
           }
         }
 

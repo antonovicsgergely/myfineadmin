@@ -17,7 +17,7 @@ export async function PATCH(
     const { status } = await req.json();
     const resolvedParams = await params;
 
-    if (!status || !["APPROVED", "REJECTED", "PENDING"].includes(status)) {
+    if (!status || !["APPROVED", "REJECTED", "PENDING", "SUSPENDED"].includes(status)) {
       return NextResponse.json({ message: "Érvénytelen státusz" }, { status: 400 });
     }
 

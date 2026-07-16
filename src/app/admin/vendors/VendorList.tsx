@@ -65,10 +65,12 @@ export default function VendorList({ initialVendors }: { initialVendors: any[] }
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                   vendor.status === 'APPROVED' ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
                   vendor.status === 'REJECTED' ? 'bg-red-500/20 text-red-600 dark:text-red-400' :
+                  vendor.status === 'SUSPENDED' ? 'bg-orange-500/20 text-orange-600 dark:text-orange-400' :
                   'bg-accent/20 text-accent dark:text-amber-400'
                 }`}>
                   {vendor.status === 'APPROVED' ? 'Jóváhagyva' : 
-                   vendor.status === 'REJECTED' ? 'Elutasítva' : 'Függőben'}
+                   vendor.status === 'REJECTED' ? 'Elutasítva' : 
+                   vendor.status === 'SUSPENDED' ? 'Felfüggesztve' : 'Függőben'}
                 </span>
               </td>
               <td className="px-6 py-4 text-foreground/60">
@@ -81,10 +83,19 @@ export default function VendorList({ initialVendors }: { initialVendors: any[] }
                     disabled={loadingId === vendor.id}
                     className="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors font-medium text-xs disabled:opacity-50"
                   >
-                    Jóváhagy
+                    {vendor.status === 'SUSPENDED' ? 'Újraaktivál' : 'Jóváhagy'}
                   </button>
                 )}
-                {vendor.status !== 'REJECTED' && (
+                {vendor.status === 'APPROVED' && (
+                  <button
+                    onClick={() => handleStatusChange(vendor.id, 'SUSPENDED')}
+                    disabled={loadingId === vendor.id}
+                    className="px-3 py-1.5 bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 rounded-lg transition-colors font-medium text-xs disabled:opacity-50"
+                  >
+                    Felfüggeszt
+                  </button>
+                )}
+                {vendor.status !== 'REJECTED' && vendor.status !== 'SUSPENDED' && (
                   <button
                     onClick={() => handleStatusChange(vendor.id, 'REJECTED')}
                     disabled={loadingId === vendor.id}
