@@ -17,16 +17,23 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [packages, setPackages] = useState<any[]>([]);
+  const [conditions, setConditions] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    fetch("/api/packages")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setPackages(data);
-        }
-      })
-      .catch((err) => console.error("Csomagok lekérése sikertelen", err));
+    Promise.all([
+      fetch("/api/packages").then(res => res.json()),
+      fetch("/api/settings/conditions").then(res => res.json())
+    ])
+    .then(([packagesData, conditionsData]) => {
+      if (Array.isArray(packagesData)) {
+        setPackages(packagesData);
+      }
+      if (conditionsData && conditionsData.content) {
+        setConditions(conditionsData.content);
+      }
+    })
+    .catch((err) => console.error("Adatok lekérése sikertelen", err));
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -215,7 +222,17 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="flex gap-4 mt-8">
+              <div className="text-center mt-2 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="text-sm text-primary hover:underline font-medium"
+                >
+                  Előfizetői csomagok részletes kondíciós listája
+                </button>
+              </div>
+
+              <div className="flex gap-4 mt-4">
                 <button
                   type="button"
                   onClick={handlePrevStep}
@@ -242,6 +259,34 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+
+      {/* Kondíciós Lista Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-background border border-border/50 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-border/50 flex justify-between items-center bg-surface/50">
+              <h3 className="text-xl font-bold text-foreground">Részletes Kondíciós Lista</h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-background hover:bg-accent/10 text-foreground/60 hover:text-foreground transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto whitespace-pre-wrap font-mono text-sm text-foreground/80 leading-relaxed">
+              {conditions}
+            </div>
+            <div className="p-4 border-t border-border/50 bg-surface/50 flex justify-end">
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+              >
+                Bezárás
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -18,19 +18,27 @@ interface SubscriptionPackage {
 
 export default function AdminPackagesPage() {
   const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
+  const [conditions, setConditions] = useState("");
   const [loading, setLoading] = useState(true);
+  const [savingConditions, setSavingConditions] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPackages();
+    fetchPackagesAndConditions();
   }, []);
 
-  const fetchPackages = async () => {
+  const fetchPackagesAndConditions = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/packages");
-      const data = await res.json();
-      setPackages(data);
+      const [packagesRes, conditionsRes] = await Promise.all([
+        fetch("/api/admin/packages"),
+        fetch("/api/settings/conditions")
+      ]);
+      const packagesData = await packagesRes.json();
+      setPackages(packagesData);
+
+      const conditionsData = await conditionsRes.json();
+      setConditions(conditionsData.content || "");
     } catch (error) {
       console.error(error);
     }
@@ -62,7 +70,7 @@ export default function AdminPackagesPage() {
       if (res.ok) {
         alert("Sikeresen módosítva!");
         setEditingId(null);
-        fetchPackages();
+        fetchPackagesAndConditions();
       } else {
         const err = await res.json();
         alert(err.error || "Hiba történt!");
@@ -70,6 +78,32 @@ export default function AdminPackagesPage() {
     } catch (error) {
       alert("Hálózati hiba!");
     }
+  };
+
+  const handleSaveConditions = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSavingConditions(true);
+    
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: [
+            { key: "SUBSCRIPTION_CONDITIONS", value: conditions }
+          ]
+        })
+      });
+      
+      if (res.ok) {
+        alert("Kondíciók sikeresen mentve!");
+      } else {
+        alert("Hiba a kondíciók mentése során!");
+      }
+    } catch (error) {
+      alert("Hálózati hiba!");
+    }
+    setSavingConditions(false);
   };
 
   if (loading) return <div className="text-foreground/60">Csomagok betöltése...</div>;
@@ -191,6 +225,29 @@ export default function AdminPackagesPage() {
             )}
           </div>
         ))}
+      </div>
+
+      <div className="mt-12 glass p-6 rounded-2xl shadow-sm border border-border/50">
+        <h3 className="text-xl font-bold text-foreground mb-4">Részletes Kondíciós Lista</h3>
+        <p className="text-sm text-foreground/60 mb-6">
+          Ez a szöveg jelenik meg a regisztrációs oldalon a csomagválasztónál, amikor a gyártó a "Részletes kondíciós lista" linkre kattint. 
+          Ide írhatod le, hogy pontosan mit tartalmaznak az egyes előfizetési csomagok.
+        </p>
+        <form onSubmit={handleSaveConditions} className="space-y-4">
+          <textarea
+            value={conditions}
+            onChange={(e) => setConditions(e.target.value)}
+            className="w-full h-64 p-4 rounded-xl bg-background/50 border border-border focus:border-primary outline-none resize-y text-sm font-mono whitespace-pre-wrap"
+            placeholder="Írd ide a kondíciókat (több sorban is lehet)..."
+          ></textarea>
+          <button 
+            type="submit" 
+            disabled={savingConditions}
+            className="bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-8 rounded-full shadow-md transition-all disabled:opacity-50"
+          >
+            {savingConditions ? "Mentés..." : "Kondíciók Mentése"}
+          </button>
+        </form>
       </div>
     </div>
   );
