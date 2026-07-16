@@ -30,8 +30,8 @@ export default async function AdminVendorsPage() {
         <h3 className="text-lg font-bold text-primary mb-2">Gyártó Onboarding Útmutató</h3>
         <p className="text-sm text-foreground/80 mb-4">A rendszerbe kétféleképpen kerülhetnek be a gyártók:</p>
         <ul className="list-disc pl-5 text-sm text-foreground/70 space-y-2">
-          <li><strong>Nyilvános Regisztráció:</strong> A gyártó regisztrál a <Link href="/register" className="text-primary hover:underline">/register</Link> oldalon. Ekkor a fiókja "Függőben" (PENDING) státuszba kerül, és ezen az oldalon az Adminnak kell <strong>Jóváhagynia</strong>, hogy beléphessen.</li>
-          <li><strong>Kézi Felvétel:</strong> Az Admin a fenti gombra kattintva hozza létre a fiókot. Ekkor a fiók azonnal <strong>Jóváhagyva (APPROVED)</strong> státuszt kap. A belépési adatokat (email és jelszó) manuálisan kell átadni a gyártónak (pl. emailben).</li>
+          <li><strong>Admin Hozzáadás:</strong> Te is felvehetsz manuálisan új gyártót az "Új Gyártó Hozzáadása" gombbal.</li>
+          <li><strong>Nyilvános Regisztráció:</strong> A gyártó regisztrál a <Link href="/register" className="text-primary hover:underline">/register</Link> oldalon. Ekkor a fiókja azonnal "Aktív" (APPROVED) státuszba kerül és be tud lépni. Bármilyen új tartalmat (Márkaoldal, Termék, stb.) hoz létre a felületén, ahhoz külön engedély/jóváhagyás kell.</li>
         </ul>
       </div>
       

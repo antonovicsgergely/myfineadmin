@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         data: {
           userId: newUser.id,
           companyName,
-          status: "PENDING", // Wait for admin approval
+          status: "APPROVED", // Auto-approve upon registration
         },
       });
 
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { message: "Sikeres regisztráció! Fiókod adminisztrátori jóváhagyásra vár." },
+      { message: "Sikeres regisztráció! Most már bejelentkezhetsz." },
       { status: 201 }
     );
   } catch (error) {
