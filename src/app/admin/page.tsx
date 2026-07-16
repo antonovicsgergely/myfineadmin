@@ -4,7 +4,16 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
   const vendorsCount = await prisma.vendor.count();
-  const pendingVendorsCount = await prisma.vendor.count({
+  const pendingBrandsCount = await prisma.vendor.count({
+    where: { brandStatus: "PENDING_APPROVAL" },
+  });
+  const pendingBlogsCount = await prisma.blogPost.count({
+    where: { status: "PENDING_APPROVAL" },
+  });
+  const pendingProductsCount = await prisma.productSync.count({
+    where: { qualityStatus: "PENDING_APPROVAL" },
+  });
+  const pendingCategoriesCount = await prisma.categoryRequest.count({
     where: { status: "PENDING" },
   });
   const productsCount = await prisma.productSync.count();
@@ -23,9 +32,26 @@ export default async function AdminDashboardPage() {
           <p className="text-4xl font-extrabold text-foreground">{vendorsCount}</p>
         </div>
         
-        <div className="glass p-6 rounded-2xl flex flex-col justify-center h-full hover:-translate-y-1 transition-transform border-accent/50 shadow-accent/10">
-          <h3 className="text-sm font-semibold text-accent mb-2 uppercase tracking-wide">Jóváhagyásra vár</h3>
-          <p className="text-4xl font-extrabold text-accent">{pendingVendorsCount}</p>
+        <div className="glass p-6 rounded-2xl flex flex-col h-full border-accent/50 shadow-accent/10">
+          <h3 className="text-sm font-semibold text-accent mb-4 uppercase tracking-wide">Jóváhagyásra vár</h3>
+          <div className="space-y-2 flex-1 flex flex-col justify-center">
+             <a href="/admin/approvals/brands" className="flex justify-between items-center hover:bg-accent/10 p-2 rounded-lg transition-colors group">
+               <span className="text-foreground/80 font-medium group-hover:text-accent">Márkaoldalak</span>
+               <span className="bg-accent text-white text-xs font-bold px-2.5 py-1 rounded-full">{pendingBrandsCount}</span>
+             </a>
+             <a href="/admin/approvals/blogs" className="flex justify-between items-center hover:bg-accent/10 p-2 rounded-lg transition-colors group">
+               <span className="text-foreground/80 font-medium group-hover:text-accent">Blogbejegyzések</span>
+               <span className="bg-accent text-white text-xs font-bold px-2.5 py-1 rounded-full">{pendingBlogsCount}</span>
+             </a>
+             <a href="/admin/approvals/products" className="flex justify-between items-center hover:bg-accent/10 p-2 rounded-lg transition-colors group">
+               <span className="text-foreground/80 font-medium group-hover:text-accent">Termékek</span>
+               <span className="bg-accent text-white text-xs font-bold px-2.5 py-1 rounded-full">{pendingProductsCount}</span>
+             </a>
+             <a href="/admin/approvals/categories" className="flex justify-between items-center hover:bg-accent/10 p-2 rounded-lg transition-colors group">
+               <span className="text-foreground/80 font-medium group-hover:text-accent">Kategóriák / Szűrők</span>
+               <span className="bg-accent text-white text-xs font-bold px-2.5 py-1 rounded-full">{pendingCategoriesCount}</span>
+             </a>
+          </div>
         </div>
         
         <div className="glass p-6 rounded-2xl flex flex-col justify-center h-full hover:-translate-y-1 transition-transform">
