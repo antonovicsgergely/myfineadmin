@@ -4,11 +4,11 @@ import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password, companyName } = await req.json();
+    const { name, email, password, companyName, subscriptionTier } = await req.json();
 
-    if (!name || !email || !password || !companyName) {
+    if (!name || !email || !password || !companyName || !subscriptionTier) {
       return NextResponse.json(
-        { message: "Minden mező kitöltése kötelező!" },
+        { message: "Minden mező kitöltése, és csomag választása kötelező!" },
         { status: 400 }
       );
     }
@@ -42,6 +42,7 @@ export async function POST(req: Request) {
           userId: newUser.id,
           companyName,
           status: "APPROVED", // Auto-approve upon registration
+          subscriptionTier,
         },
       });
 
