@@ -24,14 +24,19 @@ export default async function SettingsPage() {
     });
   }
 
+  const categories = await prisma.category.findMany();
+  const currentPackage = await prisma.subscriptionPackage.findUnique({
+    where: { code: vendor.subscriptionTier || "BASIC" }
+  });
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="mb-8">
         <h2 className="text-3xl font-extrabold text-foreground tracking-tight">Beállítások</h2>
-        <p className="text-sm text-foreground/60 mt-1">Kezeld a cégadataidat, előfizetésedet és a fiókod biztonságát.</p>
+        <p className="text-sm text-foreground/60 mt-1">Kezeld a cégadataidat, kondícióidat és a fiókod biztonságát.</p>
       </div>
       
-      <SettingsTabs vendor={vendor} />
+      <SettingsTabs vendor={vendor} categories={categories} currentPackage={currentPackage} />
     </div>
   );
 }

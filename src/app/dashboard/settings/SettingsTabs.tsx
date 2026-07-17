@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageCropperModal from "@/components/ImageCropperModal";
+import CategoryTreeView from "@/app/admin/views/categories/CategoryTreeView";
 
-export default function SettingsTabs({ vendor }: { vendor: any }) {
+export default function SettingsTabs({ vendor, categories = [], currentPackage }: { vendor: any; categories?: any[]; currentPackage?: any }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("company");
   const [loading, setLoading] = useState(false);
@@ -78,7 +79,7 @@ export default function SettingsTabs({ vendor }: { vendor: any }) {
   const tabs = [
     { id: "company", label: "Cégadatok és Pénzügyi Információk" },
     { id: "security", label: "Felhasználói Profil" },
-    { id: "subscription", label: "Előfizetés" },
+    { id: "subscription", label: "Kondíciós lista" },
     { id: "notifications", label: "Értesítések" }
   ];
 
@@ -164,26 +165,7 @@ export default function SettingsTabs({ vendor }: { vendor: any }) {
     setLoading(false);
   };
 
-  const handleSubscriptionSave = async (tier: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/vendor/settings/subscription", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscriptionTier: tier })
-      });
-      if (res.ok) {
-        alert("Előfizetési csomag sikeresen módosítva!");
-        router.refresh();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Hiba történt!");
-      }
-    } catch (err) {
-      alert("Hálózati hiba!");
-    }
-    setLoading(false);
-  };
+
 
   return (
     <>
@@ -377,42 +359,55 @@ export default function SettingsTabs({ vendor }: { vendor: any }) {
           </div>
         )}
 
-        {/* TAB: Előfizetés */}
+        {/* TAB: Kondíciós Lista */}
         {activeTab === "subscription" && (
           <div className="space-y-6">
-            <h3 className="text-lg font-bold text-foreground mb-4">Előfizetési Csomag Kezelése</h3>
-            <p className="text-sm text-foreground/70 mb-6">Jelenlegi csomagod: <strong className="text-primary">{vendor.subscriptionTier}</strong></p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* BASIC */}
-              <div className={`border-2 rounded-2xl p-6 relative ${vendor.subscriptionTier === 'BASIC' ? 'border-primary bg-primary/5' : 'border-border bg-white'}`}>
-                {vendor.subscriptionTier === 'BASIC' && <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">AKTÍV</div>}
-                <h4 className="text-xl font-bold mb-2">Alap Csomag</h4>
-                <p className="text-sm text-foreground/60 mb-6">Induló kézműveseknek és termelőknek, alap szinkronizációval.</p>
-                {vendor.subscriptionTier !== 'BASIC' && (
-                  <button onClick={() => handleSubscriptionSave("BASIC")} disabled={loading} className="w-full py-2.5 rounded-xl font-semibold border border-primary text-primary hover:bg-primary/10 transition-colors">Váltás erre</button>
-                )}
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
+              <h3 className="text-lg font-bold text-foreground">Aktuális Kondíciós Lista</h3>
+              <div className="flex items-center gap-3">
+                <a href="/kondicios-lista" target="_blank" className="text-sm font-semibold text-primary hover:underline">
+                  Részletes Kondíciós Lista
+                </a>
+                <span className="text-foreground/30">|</span>
+                <a href="/aszf" target="_blank" className="text-sm font-semibold text-primary hover:underline">
+                  ÁSZF
+                </a>
               </div>
+            </div>
 
-              {/* PRO */}
-              <div className={`border-2 rounded-2xl p-6 relative ${vendor.subscriptionTier === 'PRO' ? 'border-primary bg-primary/5' : 'border-border bg-white'}`}>
-                {vendor.subscriptionTier === 'PRO' && <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">AKTÍV</div>}
-                <h4 className="text-xl font-bold mb-2">Pro Csomag</h4>
-                <p className="text-sm text-foreground/60 mb-6">Haladó funkciók, automatikus számlázás és prioritásos támogatás.</p>
-                {vendor.subscriptionTier !== 'PRO' && (
-                  <button onClick={() => handleSubscriptionSave("PRO")} disabled={loading} className="w-full py-2.5 rounded-xl font-semibold bg-primary text-white hover:bg-primary-hover shadow-md transition-colors">Váltás erre</button>
-                )}
+            {currentPackage ? (
+              <div className="border-2 border-primary bg-primary/5 rounded-2xl p-6 relative">
+                <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">AKTÍV</div>
+                <h4 className="text-xl font-bold mb-4">{currentPackage.name}</h4>
+                <p className="text-sm text-foreground/70 mb-6">{currentPackage.description}</p>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 p-4 bg-background/80 rounded-xl border border-border">
+                  <div>
+                    <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-1">Alap Jutalék</p>
+                    <p className="font-bold text-lg">{currentPackage.commissionRate}%</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-1">Akciós Jutalék</p>
+                    <p className="font-bold text-lg text-primary">{currentPackage.promoCommissionRate ? `${currentPackage.promoCommissionRate}%` : "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-1">Havidíj</p>
+                    <p className="font-bold text-lg">{currentPackage.monthlyFee.toLocaleString("hu-HU")} Ft</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-1">Marketing Hozzájárulás</p>
+                    <p className="font-bold text-lg text-foreground/80">{currentPackage.marketingFee}%</p>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <p className="text-sm text-foreground/60">Nem található aktív kondíciós lista. Kérjük, vedd fel a kapcsolatot az ügyfélszolgálattal.</p>
+            )}
 
-              {/* PREMIUM */}
-              <div className={`border-2 rounded-2xl p-6 relative ${vendor.subscriptionTier === 'PREMIUM' ? 'border-primary bg-primary/5' : 'border-border bg-white'}`}>
-                {vendor.subscriptionTier === 'PREMIUM' && <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">AKTÍV</div>}
-                <h4 className="text-xl font-bold mb-2">Prémium Csomag</h4>
-                <p className="text-sm text-foreground/60 mb-6">Minden funkció korlátlanul, egyedi logisztikai árakkal.</p>
-                {vendor.subscriptionTier !== 'PREMIUM' && (
-                  <button onClick={() => handleSubscriptionSave("PREMIUM")} disabled={loading} className="w-full py-2.5 rounded-xl font-semibold border border-primary text-primary hover:bg-primary/10 transition-colors">Váltás erre</button>
-                )}
-              </div>
+            <div className="mt-8 border-t border-border pt-8">
+              <h3 className="text-lg font-bold text-foreground mb-4">Kategória Jutalékok</h3>
+              <p className="text-sm text-foreground/60 mb-6">Az egyes kategóriákra vonatkozó egyedi jutalékszázalékok, amelyek felülírják az alap jutalékot.</p>
+              <CategoryTreeView categories={categories} editableCommissions={false} />
             </div>
           </div>
         )}

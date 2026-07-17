@@ -112,14 +112,14 @@ export default function AdminPackagesPage() {
     setSavingConditions(false);
   };
 
-  if (loading) return <div className="text-foreground/60">Csomagok betöltése...</div>;
+  if (loading) return <div className="text-foreground/60">Kondíciós listák betöltése...</div>;
 
   return (
     <div className="space-y-6 max-w-5xl">
       <div className="mb-8">
-        <h2 className="text-3xl font-extrabold text-foreground tracking-tight">Előfizetési Csomagok</h2>
+        <h2 className="text-3xl font-extrabold text-foreground tracking-tight">Kondíciós listák</h2>
         <p className="text-sm text-foreground/60 mt-1">
-          Itt paraméterezheted a gyártók számára elérhető előfizetési konstrukciókat (jutalékok, havidíjak).
+          Itt paraméterezheted a gyártók számára elérhető kondíciós listákat (jutalékok, havidíjak).
         </p>
       </div>
 
@@ -129,13 +129,13 @@ export default function AdminPackagesPage() {
             {editingId === pkg.id ? (
               <form onSubmit={(e) => handleSave(e, pkg.id)} className="space-y-4">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold text-foreground">Csomag Szerkesztése: {pkg.code}</h3>
+                  <h3 className="text-lg font-bold text-foreground">Kondíciós Lista Szerkesztése: {pkg.code}</h3>
                   <button type="button" onClick={() => setEditingId(null)} className="text-sm text-foreground/60 hover:text-foreground">Mégse</button>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground/80 mb-1">Csomag Neve</label>
+                    <label className="block text-sm font-medium text-foreground/80 mb-1">Lista Neve</label>
                     <input name="name" defaultValue={pkg.name} required className="w-full px-4 py-2 rounded-xl bg-background/50 border border-border focus:border-primary outline-none" />
                   </div>
                   <div>
@@ -208,7 +208,7 @@ export default function AdminPackagesPage() {
                     <p className="font-bold text-lg">{pkg.monthlyFee.toLocaleString("hu-HU")} Ft</p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-1">Csomag Kód</p>
+                    <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-1">Lista Kód</p>
                     <p className="font-bold text-lg text-foreground/80">{pkg.code}</p>
                   </div>
                 </div>
@@ -244,8 +244,8 @@ export default function AdminPackagesPage() {
       <div className="mt-12 glass p-6 rounded-2xl shadow-sm border border-border/50">
         <h3 className="text-xl font-bold text-foreground mb-4">Részletes Kondíciós Lista</h3>
         <p className="text-sm text-foreground/60 mb-6">
-          Ez a szöveg jelenik meg a regisztrációs oldalon a csomagválasztónál, amikor a gyártó a "Részletes kondíciós lista" linkre kattint. 
-          Ide írhatod le, hogy pontosan mit tartalmaznak az egyes előfizetési csomagok.
+          Ez a szöveg jelenik meg a regisztrációs oldalon, amikor a gyártó a "Részletes kondíciós lista" linkre kattint. 
+          Ide írhatod le, hogy pontosan mit tartalmaznak az egyes kondíciós listák.
         </p>
         <form onSubmit={handleSaveConditions} className="space-y-4">
           <textarea
