@@ -208,9 +208,10 @@ export default function RegisterPage() {
                 ✕
               </button>
             </div>
-            <div className="p-6 overflow-y-auto whitespace-pre-wrap font-mono text-sm text-foreground/80 leading-relaxed">
-              {aszfContent}
-            </div>
+            <div 
+              className="p-6 overflow-y-auto text-sm text-foreground/90 leading-relaxed [&>p]:mb-4 [&>h1]:text-2xl [&>h1]:font-bold [&>h1]:mb-4 [&>h2]:text-xl [&>h2]:font-bold [&>h2]:mb-3 [&>h3]:text-lg [&>h3]:font-bold [&>h3]:mb-2 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:mb-4 [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:mb-4 [&>li]:mb-1 [&>a]:text-primary [&>a]:underline [&>strong]:font-bold [&>em]:italic"
+              dangerouslySetInnerHTML={{ __html: aszfContent }}
+            />
             <div className="p-4 border-t border-border/50 bg-surface/50 flex justify-end gap-3">
               <button 
                 onClick={() => setIsModalOpen(false)}

@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+
+const JoditEditor = dynamic(() => import("jodit-react"), { ssr: false });
 
 export default function AdminAszfPage() {
   const [aszfContent, setAszfContent] = useState("");
@@ -61,12 +64,17 @@ export default function AdminAszfPage() {
 
       <div className="glass p-6 rounded-2xl shadow-sm border border-border/50">
         <form onSubmit={handleSaveAszf} className="space-y-4">
-          <textarea
-            value={aszfContent}
-            onChange={(e) => setAszfContent(e.target.value)}
-            className="w-full h-[500px] p-4 rounded-xl bg-background/50 border border-border focus:border-primary outline-none resize-y text-sm font-mono whitespace-pre-wrap"
-            placeholder="Írd ide a teljes ÁSZF szövegét..."
-          ></textarea>
+          <div className="bg-white rounded-xl overflow-hidden border border-border">
+            <JoditEditor
+              value={aszfContent}
+              config={{
+                readonly: false,
+                height: 500,
+                placeholder: "Írd ide a teljes ÁSZF szövegét...",
+              }}
+              onBlur={(newContent) => setAszfContent(newContent)}
+            />
+          </div>
           <div className="flex justify-end pt-2">
             <button 
               type="submit" 
