@@ -234,6 +234,14 @@ export default function AdminPackagesPage() {
       </div>
 
       <div className="mt-12 glass p-6 rounded-2xl shadow-sm border border-border/50">
+        <h3 className="text-xl font-bold text-foreground mb-4">Kategória Jutalékok</h3>
+        <p className="text-sm text-foreground/60 mb-6">
+          Itt állíthatod be az egyedi jutalékszázalékokat a legalsó szintű termékkategóriákhoz.
+        </p>
+        <CategoryTreeView categories={categories} editableCommissions={true} />
+      </div>
+
+      <div className="mt-12 glass p-6 rounded-2xl shadow-sm border border-border/50">
         <h3 className="text-xl font-bold text-foreground mb-4">Részletes Kondíciós Lista</h3>
         <p className="text-sm text-foreground/60 mb-6">
           Ez a szöveg jelenik meg a regisztrációs oldalon a csomagválasztónál, amikor a gyártó a "Részletes kondíciós lista" linkre kattint. 
@@ -254,14 +262,6 @@ export default function AdminPackagesPage() {
             {savingConditions ? "Mentés..." : "Kondíciók Mentése"}
           </button>
         </form>
-      </div>
-
-      <div className="mt-12 glass p-6 rounded-2xl shadow-sm border border-border/50">
-        <h3 className="text-xl font-bold text-foreground mb-4">Kategória Jutalékok</h3>
-        <p className="text-sm text-foreground/60 mb-6">
-          Itt állíthatod be az egyedi jutalékszázalékokat a legalsó szintű termékkategóriákhoz.
-        </p>
-        <CategoryTreeView categories={categories} editableCommissions={true} />
       </div>
     </div>
   );
