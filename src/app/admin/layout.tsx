@@ -77,6 +77,7 @@ export default function AdminLayout({
       items: [
         { name: "Szinkronizáció", href: "/admin/sync", icon: ArrowPathIcon },
         { name: "Felhasználók", href: "/admin/users", icon: UsersIcon },
+        { name: "ÁSZF", href: "/admin/aszf", icon: DocumentTextIcon },
         { name: "Általános beállítások", href: "/admin/settings", icon: Cog6ToothIcon },
       ]
     }

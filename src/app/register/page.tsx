@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -15,6 +15,21 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const [acceptAszf, setAcceptAszf] = useState(false);
+  const [aszfContent, setAszfContent] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings/aszf")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.content) {
+          setAszfContent(data.content);
+        }
+      })
+      .catch(err => console.error("ÁSZF lekérése sikertelen", err));
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -25,6 +40,11 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!formData.name || !formData.companyName || !formData.email || !formData.password) {
       setError("Minden mező kitöltése kötelező!");
+      return;
+    }
+    
+    if (!acceptAszf) {
+      setError("Kérlek, olvasd el és fogadd el az Általános Szerződési Feltételeket!");
       return;
     }
 
@@ -136,10 +156,30 @@ export default function RegisterPage() {
               </div>
             </div>
             
+            <div className="flex items-start gap-3 mt-4 mb-2 bg-background/30 p-3 rounded-lg border border-border/50">
+              <input
+                type="checkbox"
+                id="aszf"
+                checked={acceptAszf}
+                onChange={(e) => setAcceptAszf(e.target.checked)}
+                className="mt-1 w-5 h-5 rounded border-border text-primary focus:ring-primary bg-background"
+              />
+              <label htmlFor="aszf" className="text-sm text-foreground/80 leading-snug">
+                Elolvastam és elfogadom az{" "}
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="text-primary hover:underline font-bold"
+                >
+                  Általános Szerződési Feltételeket
+                </button>.
+              </label>
+            </div>
+            
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-8 text-lg"
+              disabled={loading || !acceptAszf}
+              className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3.5 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4 text-lg"
             >
               {loading ? "Regisztráció folyamatban..." : "Regisztráció befejezése"}
             </button>
@@ -154,6 +194,43 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+
+      {/* ÁSZF Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-background border border-border/50 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-border/50 flex justify-between items-center bg-surface/50">
+              <h3 className="text-xl font-bold text-foreground">Általános Szerződési Feltételek (ÁSZF)</h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-background hover:bg-accent/10 text-foreground/60 hover:text-foreground transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto whitespace-pre-wrap font-mono text-sm text-foreground/80 leading-relaxed">
+              {aszfContent}
+            </div>
+            <div className="p-4 border-t border-border/50 bg-surface/50 flex justify-end gap-3">
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-2 bg-background hover:bg-surface border border-border text-foreground rounded-lg font-medium transition-colors"
+              >
+                Mégse
+              </button>
+              <button 
+                onClick={() => {
+                  setAcceptAszf(true);
+                  setIsModalOpen(false);
+                }}
+                className="px-6 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+              >
+                Elfogadom
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
