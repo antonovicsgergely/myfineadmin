@@ -3,13 +3,14 @@ import prisma from "@/lib/prisma";
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const { commissionRate } = await req.json();
 
     const updatedCategory = await prisma.category.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         commissionRate: commissionRate !== null ? parseFloat(commissionRate) : null,
       },
