@@ -188,13 +188,14 @@ model BlogPost {
 }
 
 model Category {
-  id        String     @id @default(cuid())
-  unasId    String?    @unique
-  name      String     @unique
-  parentId  String?
-  parent    Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryToCategory")
-  isActive  Boolean    @default(true)
+  id             String     @id @default(cuid())
+  unasId         String?    @unique
+  name           String     @unique
+  parentId       String?
+  parent         Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children       Category[] @relation("CategoryToCategory")
+  isActive       Boolean    @default(true)
+  commissionRate Float?
 }
 
 model Filter {
