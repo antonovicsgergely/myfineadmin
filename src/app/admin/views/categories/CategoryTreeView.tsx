@@ -141,52 +141,60 @@ export default function CategoryTreeView({
                 <div className="flex-1 flex items-center justify-between">
                   <span>{displayName}</span>
                   
-                  {editableCommissions && !hasChildren && (
+                  {!hasChildren && (
                     <div className="flex items-center gap-2 commission-controls" onClick={e => e.stopPropagation()}>
                       <span className="text-xs text-slate-500 font-medium">Jutalék:</span>
                       
-                      {editingId === cat.id ? (
-                        <div className="flex items-center gap-1">
-                          <input 
-                            type="number" 
-                            step="0.1"
-                            value={draftRate}
-                            onChange={(e) => setDraftRate(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveCommission(cat.id);
-                              if (e.key === 'Escape') handleCancelEdit();
-                            }}
-                            className="w-16 h-7 text-xs px-2 py-1 rounded border border-primary focus:ring-1 focus:ring-primary outline-none"
-                            placeholder="%"
-                            autoFocus
-                            disabled={savingId === cat.id}
-                          />
-                          <button 
-                            onClick={() => handleSaveCommission(cat.id)}
-                            disabled={savingId === cat.id}
-                            className="h-7 px-2 text-xs font-bold bg-primary text-white rounded hover:bg-primary-hover disabled:opacity-50"
-                          >
-                            {savingId === cat.id ? "..." : "Mentés"}
-                          </button>
-                          <button 
-                            onClick={handleCancelEdit}
-                            disabled={savingId === cat.id}
-                            className="h-7 px-2 text-xs font-bold bg-slate-200 text-slate-700 rounded hover:bg-slate-300 disabled:opacity-50"
-                          >
-                            Mégse
-                          </button>
-                        </div>
+                      {editableCommissions ? (
+                        editingId === cat.id ? (
+                          <div className="flex items-center gap-1">
+                            <input 
+                              type="number" 
+                              step="0.1"
+                              value={draftRate}
+                              onChange={(e) => setDraftRate(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveCommission(cat.id);
+                                if (e.key === 'Escape') handleCancelEdit();
+                              }}
+                              className="w-16 h-7 text-xs px-2 py-1 rounded border border-primary focus:ring-1 focus:ring-primary outline-none"
+                              placeholder="%"
+                              autoFocus
+                              disabled={savingId === cat.id}
+                            />
+                            <button 
+                              onClick={() => handleSaveCommission(cat.id)}
+                              disabled={savingId === cat.id}
+                              className="h-7 px-2 text-xs font-bold bg-primary text-white rounded hover:bg-primary-hover disabled:opacity-50"
+                            >
+                              {savingId === cat.id ? "..." : "Mentés"}
+                            </button>
+                            <button 
+                              onClick={handleCancelEdit}
+                              disabled={savingId === cat.id}
+                              className="h-7 px-2 text-xs font-bold bg-slate-200 text-slate-700 rounded hover:bg-slate-300 disabled:opacity-50"
+                            >
+                              Mégse
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-700 w-12 text-right">
+                              {cat.commissionRate !== null ? `${cat.commissionRate}%` : "-"}
+                            </span>
+                            <button 
+                              onClick={() => handleStartEdit(cat)}
+                              className="text-xs border border-slate-300 bg-white text-slate-600 px-2 py-1 rounded hover:bg-slate-50 hover:text-primary hover:border-primary transition-colors"
+                            >
+                              Szerkesztés
+                            </button>
+                          </div>
+                        )
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-700 w-12 text-right">
-                            {cat.commissionRate !== null ? `${cat.commissionRate}%` : "-"}
+                          <span className="font-bold text-slate-700 text-right">
+                            {cat.commissionRate !== null ? `${cat.commissionRate}%` : "Alapértelmezett"}
                           </span>
-                          <button 
-                            onClick={() => handleStartEdit(cat)}
-                            className="text-xs border border-slate-300 bg-white text-slate-600 px-2 py-1 rounded hover:bg-slate-50 hover:text-primary hover:border-primary transition-colors"
-                          >
-                            Szerkesztés
-                          </button>
                         </div>
                       )}
                     </div>
