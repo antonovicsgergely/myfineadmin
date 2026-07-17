@@ -21,9 +21,19 @@ const cleanName = (name: string, unasId: string | null) => {
   return name;
 };
 
-export default function CategoryTreeView({ categories: initialCategories }: { categories: Category[] }) {
+export default function CategoryTreeView({ 
+  categories: initialCategories,
+  editableCommissions = false 
+}: { 
+  categories: Category[],
+  editableCommissions?: boolean
+}) {
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  
+  // States for the new edit UI
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftRate, setDraftRate] = useState<string>("");
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => {
@@ -38,8 +48,18 @@ export default function CategoryTreeView({ categories: initialCategories }: { ca
     });
   };
 
-  const handleCommissionSave = async (id: string, value: string) => {
-    const rate = value.trim() === "" ? null : parseFloat(value);
+  const handleStartEdit = (cat: Category) => {
+    setEditingId(cat.id);
+    setDraftRate(cat.commissionRate !== null ? String(cat.commissionRate) : "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setDraftRate("");
+  };
+
+  const handleSaveCommission = async (id: string) => {
+    const rate = draftRate.trim() === "" ? null : parseFloat(draftRate);
     if (isNaN(rate as number) && rate !== null) return; // Invalid number
     
     setSavingId(id);
@@ -51,15 +71,28 @@ export default function CategoryTreeView({ categories: initialCategories }: { ca
       });
       if (res.ok) {
         setCategories(prev => prev.map(c => c.id === id ? { ...c, commissionRate: rate } : c));
+        setEditingId(null);
+      } else {
+        alert("Hiba a mentés során.");
       }
     } catch (error) {
       console.error("Hiba a jutalék mentésekor", error);
+      alert("Hálózati hiba.");
     }
     setSavingId(null);
   };
 
+  // Normalize orphans (if a parent was set to inactive, the child's parentId would point to nothing)
+  const categoryIds = new Set(categories.map(c => c.id));
+  const normalizedCategories = categories.map(c => {
+    if (c.parentId && !categoryIds.has(c.parentId)) {
+      return { ...c, parentId: null };
+    }
+    return c;
+  });
+
   const childrenMap = new Map<string | null, Category[]>();
-  categories.forEach(cat => {
+  normalizedCategories.forEach(cat => {
     const parent = cat.parentId;
     if (!childrenMap.has(parent)) {
       childrenMap.set(parent, []);
@@ -86,7 +119,12 @@ export default function CategoryTreeView({ categories: initialCategories }: { ca
                   level === 1 ? "bg-slate-50 text-slate-800 font-medium" : 
                   "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 } ${hasChildren ? "cursor-pointer" : ""}`}
-                onClick={() => hasChildren && toggleExpand(cat.id)}
+                onClick={(e) => {
+                  // Only toggle if we didn't click inside the edit controls
+                  if (hasChildren && !(e.target as HTMLElement).closest('.commission-controls')) {
+                    toggleExpand(cat.id);
+                  }
+                }}
               >
                 <div className="w-5 flex items-center justify-center text-slate-400">
                   {hasChildren ? (
@@ -103,28 +141,54 @@ export default function CategoryTreeView({ categories: initialCategories }: { ca
                 <div className="flex-1 flex items-center justify-between">
                   <span>{displayName}</span>
                   
-                  {!hasChildren && (
-                    <div className="flex items-center gap-2">
+                  {editableCommissions && !hasChildren && (
+                    <div className="flex items-center gap-2 commission-controls" onClick={e => e.stopPropagation()}>
                       <span className="text-xs text-slate-500 font-medium">Jutalék:</span>
-                      <div className="relative">
-                        <input 
-                          type="number" 
-                          step="0.1"
-                          defaultValue={cat.commissionRate !== null ? cat.commissionRate : ""}
-                          onBlur={(e) => handleCommissionSave(cat.id, e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              (e.target as HTMLInputElement).blur();
-                            }
-                          }}
-                          className={`w-16 h-7 text-xs px-2 py-1 rounded border outline-none transition-colors ${savingId === cat.id ? 'bg-slate-100 border-slate-300' : 'bg-white border-slate-200 focus:border-primary focus:ring-1 focus:ring-primary'}`}
-                          placeholder="%"
-                          disabled={savingId === cat.id}
-                        />
-                        {savingId === cat.id && (
-                          <div className="absolute right-1 top-1.5 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                        )}
-                      </div>
+                      
+                      {editingId === cat.id ? (
+                        <div className="flex items-center gap-1">
+                          <input 
+                            type="number" 
+                            step="0.1"
+                            value={draftRate}
+                            onChange={(e) => setDraftRate(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveCommission(cat.id);
+                              if (e.key === 'Escape') handleCancelEdit();
+                            }}
+                            className="w-16 h-7 text-xs px-2 py-1 rounded border border-primary focus:ring-1 focus:ring-primary outline-none"
+                            placeholder="%"
+                            autoFocus
+                            disabled={savingId === cat.id}
+                          />
+                          <button 
+                            onClick={() => handleSaveCommission(cat.id)}
+                            disabled={savingId === cat.id}
+                            className="h-7 px-2 text-xs font-bold bg-primary text-white rounded hover:bg-primary-hover disabled:opacity-50"
+                          >
+                            {savingId === cat.id ? "..." : "Mentés"}
+                          </button>
+                          <button 
+                            onClick={handleCancelEdit}
+                            disabled={savingId === cat.id}
+                            className="h-7 px-2 text-xs font-bold bg-slate-200 text-slate-700 rounded hover:bg-slate-300 disabled:opacity-50"
+                          >
+                            Mégse
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-700 w-12 text-right">
+                            {cat.commissionRate !== null ? `${cat.commissionRate}%` : "-"}
+                          </span>
+                          <button 
+                            onClick={() => handleStartEdit(cat)}
+                            className="text-xs border border-slate-300 bg-white text-slate-600 px-2 py-1 rounded hover:bg-slate-50 hover:text-primary hover:border-primary transition-colors"
+                          >
+                            Szerkesztés
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

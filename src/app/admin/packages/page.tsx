@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import CategoryTreeView from "../views/categories/CategoryTreeView";
 
 interface SubscriptionPackage {
   id: string;
@@ -18,6 +19,7 @@ interface SubscriptionPackage {
 
 export default function AdminPackagesPage() {
   const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [conditions, setConditions] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingConditions, setSavingConditions] = useState(false);
@@ -30,15 +32,19 @@ export default function AdminPackagesPage() {
   const fetchPackagesAndConditions = async () => {
     setLoading(true);
     try {
-      const [packagesRes, conditionsRes] = await Promise.all([
+      const [packagesRes, conditionsRes, categoriesRes] = await Promise.all([
         fetch("/api/admin/packages"),
-        fetch("/api/settings/conditions")
+        fetch("/api/settings/conditions"),
+        fetch("/api/admin/categories")
       ]);
       const packagesData = await packagesRes.json();
       setPackages(packagesData);
 
       const conditionsData = await conditionsRes.json();
       setConditions(conditionsData.content || "");
+      
+      const categoriesData = await categoriesRes.json();
+      setCategories(categoriesData);
     } catch (error) {
       console.error(error);
     }
@@ -248,6 +254,14 @@ export default function AdminPackagesPage() {
             {savingConditions ? "Mentés..." : "Kondíciók Mentése"}
           </button>
         </form>
+      </div>
+
+      <div className="mt-12 glass p-6 rounded-2xl shadow-sm border border-border/50">
+        <h3 className="text-xl font-bold text-foreground mb-4">Kategória Jutalékok</h3>
+        <p className="text-sm text-foreground/60 mb-6">
+          Itt állíthatod be az egyedi jutalékszázalékokat a legalsó szintű termékkategóriákhoz.
+        </p>
+        <CategoryTreeView categories={categories} editableCommissions={true} />
       </div>
     </div>
   );
