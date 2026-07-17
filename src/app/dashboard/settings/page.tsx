@@ -24,7 +24,22 @@ export default async function SettingsPage() {
     });
   }
 
-  const categories = await prisma.category.findMany();
+  const allCategories = await prisma.category.findMany();
+  
+  // Megkeressük a "Termékek" főkategóriát
+  const termekekCategory = allCategories.find(c => 
+    c.name.toLowerCase() === "termékek" || 
+    (c.name.toLowerCase().includes("termékek") && !c.parentId)
+  );
+
+  let categories = allCategories;
+  if (termekekCategory) {
+    const getDescendants = (parentId: string): typeof allCategories => {
+      const children = allCategories.filter(c => c.parentId === parentId);
+      return [...children, ...children.flatMap(c => getDescendants(c.id))];
+    };
+    categories = [termekekCategory, ...getDescendants(termekekCategory.id)];
+  }
   const currentPackage = await prisma.subscriptionPackage.findUnique({
     where: { code: vendor.subscriptionTier || "BASIC" }
   });
