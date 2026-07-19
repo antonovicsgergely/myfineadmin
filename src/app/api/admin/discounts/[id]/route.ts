@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const data = await req.json();
     
     // Convert empty strings to null and parse floats
@@ -13,7 +14,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     };
 
     const updatedDiscount = await prisma.vendorDiscount.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name: data.name,
         vendorId: data.vendorId,
