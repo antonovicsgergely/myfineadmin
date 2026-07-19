@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   try {
     const discounts = await prisma.vendorDiscount.findMany({
-      include: { vendor: true },
+      include: { vendor: true, createdBy: true },
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(discounts);
@@ -19,6 +21,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
     const data = await req.json();
     
     // Convert empty strings to null and parse floats
@@ -30,7 +33,9 @@ export async function POST(req: Request) {
 
     const newDiscount = await prisma.vendorDiscount.create({
       data: {
+        name: data.name || "Egyedi Kedvezmény",
         vendorId: data.vendorId,
+        createdById: session?.user?.id || null,
         discountedCommissionRate: parseOptionalFloat(data.discountedCommissionRate),
         discountedPromoCommissionRate: parseOptionalFloat(data.discountedPromoCommissionRate),
         discountedMonthlyFee: parseOptionalFloat(data.discountedMonthlyFee),
@@ -39,7 +44,7 @@ export async function POST(req: Request) {
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
       },
-      include: { vendor: true },
+      include: { vendor: true, createdBy: true },
     });
 
     return NextResponse.json(newDiscount, { status: 201 });

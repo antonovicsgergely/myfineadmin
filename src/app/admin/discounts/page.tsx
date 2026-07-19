@@ -10,10 +10,19 @@ interface Vendor {
   brandName: string | null;
 }
 
+interface User {
+  id: string;
+  name: string | null;
+  email: string | null;
+}
+
 interface VendorDiscount {
   id: string;
+  name: string;
   vendorId: string;
   vendor: Vendor;
+  createdById: string | null;
+  createdBy: User | null;
   discountedCommissionRate: number | null;
   discountedPromoCommissionRate: number | null;
   discountedMonthlyFee: number | null;
@@ -104,8 +113,14 @@ export default function AdminDiscountsPage() {
       <div key={d.id} className={`glass p-6 rounded-2xl shadow-sm border ${isExpired && !d.isArchived ? 'border-red-300 bg-red-50/50' : 'border-border/50'}`}>
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h3 className="text-lg font-bold text-foreground">{d.vendor.companyName}</h3>
-            {d.vendor.brandName && <p className="text-sm text-foreground/60">{d.vendor.brandName}</p>}
+            <h3 className="text-xl font-bold text-primary mb-1">{d.name}</h3>
+            <h4 className="text-md font-semibold text-foreground">{d.vendor.companyName} {d.vendor.brandName ? `(${d.vendor.brandName})` : ""}</h4>
+            <div className="mt-2 text-xs text-foreground/50 space-y-1">
+              <p>Rögzítve: <span className="font-medium text-foreground/70">{format(new Date(d.createdAt), 'yyyy. MM. dd. HH:mm', { locale: hu })}</span></p>
+              {d.createdBy && (
+                <p>Rögzítette: <span className="font-medium text-foreground/70">{d.createdBy.name || "Ismeretlen"} ({d.createdBy.email})</span></p>
+              )}
+            </div>
           </div>
           {!d.isArchived && (
             <button 
@@ -224,16 +239,22 @@ export default function AdminDiscountsPage() {
       {activeTab === "ADD_NEW" && (
         <div className="glass p-8 rounded-2xl shadow-sm border border-border/50">
           <form onSubmit={handleCreateDiscount} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-foreground/80 mb-2">Gyártó Kiválasztása *</label>
-              <select name="vendorId" required className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm">
-                <option value="">Válassz gyártót...</option>
-                {vendors.map(v => (
-                  <option key={v.id} value={v.id}>
-                    {v.companyName} {v.brandName ? `(${v.brandName})` : ""}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Kedvezmény Neve *</label>
+                <input type="text" name="name" required placeholder="pl. Tavaszi Akció 2026" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Gyártó Kiválasztása *</label>
+                <select name="vendorId" required className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm">
+                  <option value="">Válassz gyártót...</option>
+                  {vendors.map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.companyName} {v.brandName ? `(${v.brandName})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
