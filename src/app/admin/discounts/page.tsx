@@ -40,6 +40,7 @@ export default function AdminDiscountsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -89,6 +90,32 @@ export default function AdminDiscountsPage() {
     setSaving(false);
   };
 
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>, id: string) => {
+    e.preventDefault();
+    setSaving(true);
+    const formData = new FormData(e.currentTarget);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+      const res = await fetch(`/api/admin/discounts/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        alert("Sikeresen módosítva!");
+        setEditingDiscountId(null);
+        fetchData();
+      } else {
+        alert("Hiba történt a módosítás során.");
+      }
+    } catch (error) {
+      alert("Hálózati hiba!");
+    }
+    setSaving(false);
+  };
+
   const handleArchive = async (id: string) => {
     if (!confirm("Biztosan archiválod ezt a kedvezményt? A gyártónak a továbbiakban nem lesz érvényes.")) return;
     try {
@@ -109,6 +136,74 @@ export default function AdminDiscountsPage() {
   const renderDiscountCard = (d: VendorDiscount) => {
     const isExpired = d.endDate && new Date(d.endDate) < new Date();
     
+    if (editingDiscountId === d.id) {
+      return (
+        <div key={d.id} className="glass p-6 rounded-2xl shadow-sm border border-primary ring-2 ring-primary/20">
+          <form onSubmit={(e) => handleEditSubmit(e, d.id)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Kedvezmény Neve *</label>
+                <input type="text" name="name" defaultValue={d.name} required className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Gyártó Kiválasztása *</label>
+                <select name="vendorId" defaultValue={d.vendorId} required className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm">
+                  {vendors.map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.companyName} {v.brandName ? `(${v.brandName})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Érvényesség Kezdete</label>
+                <input type="date" name="startDate" defaultValue={d.startDate ? new Date(d.startDate).toISOString().split('T')[0] : ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Érvényesség Vége</label>
+                <input type="date" name="endDate" defaultValue={d.endDate ? new Date(d.endDate).toISOString().split('T')[0] : ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Új Jutalék (%)</label>
+                <input type="number" step="0.1" name="discountedCommissionRate" defaultValue={d.discountedCommissionRate ?? ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Új Akciós Jutalék (%)</label>
+                <input type="number" step="0.1" name="discountedPromoCommissionRate" defaultValue={d.discountedPromoCommissionRate ?? ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Új Havidíj (Ft)</label>
+                <input type="number" step="1" name="discountedMonthlyFee" defaultValue={d.discountedMonthlyFee ?? ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Új Marketing Hozzájárulás (%)</label>
+                <input type="number" step="0.1" name="discountedMarketingFee" defaultValue={d.discountedMarketingFee ?? ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Új Bankkártyás Díj (%)</label>
+                <input type="number" step="0.1" name="discountedCardFee" defaultValue={d.discountedCardFee ?? ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button disabled={saving} type="submit" className="bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition-all disabled:opacity-50">
+                Mentés
+              </button>
+              <button type="button" onClick={() => setEditingDiscountId(null)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-6 rounded-xl transition-all">
+                Mégse
+              </button>
+            </div>
+          </form>
+        </div>
+      );
+    }
+
     return (
       <div key={d.id} className={`glass p-6 rounded-2xl shadow-sm border ${isExpired && !d.isArchived ? 'border-red-300 bg-red-50/50' : 'border-border/50'}`}>
         <div className="flex justify-between items-start mb-4">
@@ -123,12 +218,20 @@ export default function AdminDiscountsPage() {
             </div>
           </div>
           {!d.isArchived && (
-            <button 
-              onClick={() => handleArchive(d.id)}
-              className="text-xs bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-1.5 rounded-lg transition-colors border border-red-200"
-            >
-              Archiválás
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setEditingDiscountId(d.id)}
+                className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-lg transition-colors border border-blue-200"
+              >
+                Szerkesztés
+              </button>
+              <button 
+                onClick={() => handleArchive(d.id)}
+                className="text-xs bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-1.5 rounded-lg transition-colors border border-red-200"
+              >
+                Archiválás
+              </button>
+            </div>
           )}
         </div>
 
