@@ -436,17 +436,6 @@ export default function SettingsTabs({ vendor, categories = [], currentPackage }
               );
             })()}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* BASIC */}
-              <div className={`border-2 rounded-2xl p-6 relative ${vendor.subscriptionTier === 'BASIC' ? 'border-primary bg-primary/5' : 'border-border bg-white'}`}>
-                {vendor.subscriptionTier === 'BASIC' && <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">AKTÍV</div>}
-                <h4 className="text-xl font-bold mb-2">Alap Csomag</h4>
-                <p className="text-sm text-foreground/60 mb-6">Induló kézműveseknek és termelőknek, alap szinkronizációval.</p>
-                {vendor.subscriptionTier !== 'BASIC' && (
-                  <button onClick={() => handleSubscriptionSave("BASIC")} disabled={loading} className="w-full py-2.5 rounded-xl font-semibold border border-primary text-primary hover:bg-primary/10 transition-colors">Váltás erre</button>
-                )}
-              </div>
-            </div>
 
             {currentPackage ? (
               <div className="border-2 border-primary bg-primary/5 rounded-2xl p-6 relative">
