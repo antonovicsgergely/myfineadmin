@@ -60,8 +60,29 @@ model Vendor {
   settlements     Settlement[]
   blogPosts       BlogPost[]
   categoryRequests CategoryRequest[]
+  discounts       VendorDiscount[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+}
+
+model VendorDiscount {
+  id                          String    @id @default(cuid())
+  vendorId                    String
+  vendor                      Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  
+  discountedCommissionRate    Float?
+  discountedPromoCommissionRate Float?
+  discountedMonthlyFee        Float?
+  discountedMarketingFee      Float?
+  discountedCardFee           Float?
+  
+  startDate                   DateTime?
+  endDate                     DateTime?
+  
+  isArchived                  Boolean   @default(false)
+  
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 }
 
 model ProductSync {

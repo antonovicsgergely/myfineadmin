@@ -60,7 +60,8 @@ export default function AdminLayout({
       title: "ÉRTÉKESÍTÉS & PÉNZÜGY",
       items: [
         { name: "Rendelések", href: "/admin/orders", icon: ShoppingCartIcon },
-        { name: "Kondíciós listák", href: "/admin/packages", icon: CreditCardIcon },
+        { name: "Előfizetési Csomagok", href: "/admin/packages", icon: CreditCardIcon },
+        { name: "Gyártói Kedvezmények", href: "/admin/discounts", icon: TagIcon },
       ]
     },
     {

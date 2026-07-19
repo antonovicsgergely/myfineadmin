@@ -10,7 +10,13 @@ export default async function SettingsPage() {
 
   let vendor = await prisma.vendor.findUnique({
     where: { userId: session.user.id },
-    include: { user: true }
+    include: { 
+      user: true,
+      discounts: {
+        where: { isArchived: false },
+        orderBy: { createdAt: "desc" }
+      }
+    }
   });
 
   if (!vendor) {
