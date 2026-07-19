@@ -26,7 +26,10 @@ export default async function SettingsPage() {
         companyName: session.user.name || "Saját Márka",
         status: "APPROVED"
       },
-      include: { user: true }
+      include: { 
+        user: true,
+        discounts: true 
+      }
     });
   }
 
