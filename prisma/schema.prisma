@@ -19,6 +19,7 @@ model User {
   vendor        Vendor?
   notifications Notification[]
   createdDiscounts VendorDiscount[]
+  createdCampaigns Campaign[]
   lastLoginAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -311,4 +312,77 @@ model PasswordResetToken {
   token     String   @unique
   expires   DateTime
   createdAt DateTime @default(now())
+}
+
+model Campaign {
+  id                  String          @id @default(cuid())
+  name                String
+  slug                String          @unique
+  description         String?
+
+  // Publikus tartalom
+  publicTitle         String?
+  publicDescription   String?         // Rich text HTML
+  bannerImageUrl      String?
+  bannerLink          String?
+  thumbnailUrl        String?
+
+  // Státusz: DRAFT, ACTIVE, PAUSED, ENDED, ARCHIVED
+  status              String          @default("DRAFT")
+
+  // Időzítés
+  startDate           DateTime?
+  endDate             DateTime?
+
+  // Megjelenés konfiguráció
+  showOnHomeBanner    Boolean         @default(false)
+  showInFeatured      Boolean         @default(false)
+  showInMenu          Boolean         @default(false)
+  hasDedicatedPage    Boolean         @default(false)
+
+  // Social média
+  socialMediaText     String?
+  socialMediaImageUrl String?
+
+  // Unas szinkronizáció
+  unasCategoryId      String?
+  unasPageId          String?
+
+  // Admin tracking
+  createdById         String?
+  createdBy           User?           @relation(fields: [createdById], references: [id])
+
+  // Kapcsolatok
+  items               CampaignItem[]
+  blogPostId          String?
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+}
+
+model CampaignItem {
+  id                    String      @id @default(cuid())
+  campaignId            String
+  campaign              Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  // Mire vonatkozik (egymást kizáró)
+  targetType            String      // "VENDOR", "CATEGORY", "PRODUCT"
+  vendorId              String?
+  categoryId            String?
+  productId             String?
+
+  // Akciós kedvezmény
+  discountType          String      @default("PERCENTAGE")
+  // "PERCENTAGE", "FIXED_AMOUNT", "FIXED_PRICE"
+  discountValue         Float
+
+  // Jutalék felülírás (opcionális)
+  customCommissionRate  Float?
+
+  // Készlet korlát
+  maxQuantity           Int?
+  soldQuantity          Int         @default(0)
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 }

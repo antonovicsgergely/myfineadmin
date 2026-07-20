@@ -17,7 +17,8 @@ import {
   ArrowRightStartOnRectangleIcon,
   DocumentTextIcon,
   TagIcon,
-  AdjustmentsHorizontalIcon
+  AdjustmentsHorizontalIcon,
+  MegaphoneIcon
 } from "@heroicons/react/24/outline";
 
 export default function AdminLayout({
@@ -62,6 +63,7 @@ export default function AdminLayout({
         { name: "Rendelések", href: "/admin/orders", icon: ShoppingCartIcon },
         { name: "Előfizetési Csomagok", href: "/admin/packages", icon: CreditCardIcon },
         { name: "Gyártói Kedvezmények", href: "/admin/discounts", icon: TagIcon },
+        { name: "Kampányszervező", href: "/admin/campaigns", icon: MegaphoneIcon },
       ]
     },
     {
