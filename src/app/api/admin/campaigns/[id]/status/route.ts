@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { syncCampaignPricesToUnas, removeCampaignPricesFromUnas } from "@/lib/unas/campaigns";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   DRAFT: ["ACTIVE"],
@@ -43,13 +44,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       include: { items: true, createdBy: { select: { id: true, name: true, email: true } } },
     });
 
-    // TODO: Phase 2 — Unas sync triggers
-    // if (newStatus === "ACTIVE") → sync sale prices to Unas
-    // if (newStatus === "PAUSED" || newStatus === "ENDED") → remove sale prices from Unas
+    // Unas sync triggers (non-blocking — runs in background)
+    let syncResult = null;
+    try {
+      if (newStatus === "ACTIVE") {
+        // Élesítés: akciós árak beállítása az Unasban
+        syncResult = await syncCampaignPricesToUnas(id);
+        console.log(`[CAMPAIGN] Élesítés szinkron kész: ${syncResult.synced} sikeres, ${syncResult.failed} sikertelen`);
+      } else if (newStatus === "PAUSED" || newStatus === "ENDED") {
+        // Szüneteltetés/Lezárás: akciós árak visszaállítása
+        syncResult = await removeCampaignPricesFromUnas(id);
+        console.log(`[CAMPAIGN] Árak visszaállítva: ${syncResult.synced} sikeres, ${syncResult.failed} sikertelen`);
+      }
+    } catch (syncError) {
+      console.error("[CAMPAIGN] Unas szinkron hiba (nem blokkolta a státuszváltást):", syncError);
+    }
 
-    return NextResponse.json(updatedCampaign);
+    return NextResponse.json({
+      ...updatedCampaign,
+      syncResult,
+    });
   } catch (error) {
     console.error("Hiba a kampány státuszváltáskor:", error);
     return NextResponse.json({ error: "Nem sikerült módosítani a státuszt." }, { status: 500 });
   }
 }
+
+

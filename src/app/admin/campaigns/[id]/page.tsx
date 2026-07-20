@@ -75,6 +75,8 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const [isEditing, setIsEditing] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [addItemType, setAddItemType] = useState<"VENDOR" | "CATEGORY" | "PRODUCT">("VENDOR");
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ synced: number; failed: number; errors: string[] } | null>(null);
 
   useEffect(() => {
     fetchAll();
@@ -520,6 +522,53 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
           </div>
         )}
       </div>
+
+      {/* Unas Sync Section */}
+      {campaign.status === "ACTIVE" && (
+        <div className="glass p-6 rounded-2xl shadow-sm border border-border/50">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-foreground">Unas Szinkronizáció</h3>
+            <button
+              disabled={syncing}
+              onClick={async () => {
+                setSyncing(true);
+                setSyncResult(null);
+                try {
+                  const res = await fetch(`/api/admin/campaigns/${id}/sync`, { method: "POST" });
+                  const result = await res.json();
+                  if (res.ok) {
+                    setSyncResult(result);
+                  } else {
+                    alert(result.error || "Hiba történt a szinkronizáció során.");
+                  }
+                } catch (error) {
+                  alert("Hálózati hiba!");
+                }
+                setSyncing(false);
+              }}
+              className="bg-primary hover:bg-primary-hover text-white font-bold py-2 px-5 rounded-xl text-sm transition-colors disabled:opacity-50"
+            >
+              {syncing ? "Szinkronizálás..." : "🔄 Akciós Árak Szinkronizálása"}
+            </button>
+          </div>
+          <p className="text-sm text-foreground/60 mb-4">
+            Az akciós árak beállítása az Unas webáruházban. A szinkronizáció automatikusan lefut élesítéskor és lezáráskor is.
+          </p>
+          {syncResult && (
+            <div className={`p-4 rounded-xl border ${syncResult.failed > 0 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
+              <p className="font-bold text-sm">
+                ✅ {syncResult.synced} termék akciós ára beállítva
+                {syncResult.failed > 0 && <span className="text-amber-700"> | ❌ {syncResult.failed} sikertelen</span>}
+              </p>
+              {syncResult.errors && syncResult.errors.length > 0 && (
+                <ul className="mt-2 text-xs text-red-600 list-disc pl-4">
+                  {syncResult.errors.map((err: string, i: number) => <li key={i}>{err}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
