@@ -77,6 +77,10 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const [addItemType, setAddItemType] = useState<"VENDOR" | "CATEGORY" | "PRODUCT">("VENDOR");
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ synced: number; failed: number; errors: string[] } | null>(null);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [isEditingContent, setIsEditingContent] = useState(false);
+  const [blogPosts, setBlogPosts] = useState<{ id: string; title: string | null; draftTitle: string | null; status: string }[]>([]);
 
   useEffect(() => {
     fetchAll();
@@ -85,12 +89,13 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [campaignRes, itemsRes, vendorsRes, categoriesRes, productsRes] = await Promise.all([
+      const [campaignRes, itemsRes, vendorsRes, categoriesRes, productsRes, blogRes] = await Promise.all([
         fetch(`/api/admin/campaigns/${id}`),
         fetch(`/api/admin/campaigns/${id}/items`),
         fetch("/api/admin/vendors/simple"),
         fetch("/api/admin/categories"),
         fetch("/api/admin/products?limit=500"),
+        fetch("/api/admin/blogs"),
       ]);
       setCampaign(await campaignRes.json());
       setItems(await itemsRes.json());
@@ -99,6 +104,8 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
       setCategories(Array.isArray(catData) ? catData : []);
       const prodData = await productsRes.json();
       setProducts(Array.isArray(prodData) ? prodData : (prodData?.products || []));
+      const blogData = await blogRes.json();
+      setBlogPosts(Array.isArray(blogData) ? blogData : []);
     } catch (error) {
       console.error(error);
     }
@@ -205,6 +212,65 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
     } catch (error) {
       alert("Hálózati hiba!");
     }
+  };
+
+  const handleUploadImage = async (
+    file: File,
+    field: "bannerImageUrl" | "thumbnailUrl",
+    setUploading: (v: boolean) => void
+  ) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/vendor/upload", { method: "POST", body: formData });
+      if (res.ok) {
+        const { url } = await res.json();
+        // Save directly to campaign
+        const saveRes = await fetch(`/api/admin/campaigns/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...campaign, [field]: url }),
+        });
+        if (saveRes.ok) {
+          const updated = await saveRes.json();
+          setCampaign(updated);
+        }
+      } else {
+        const err = await res.json();
+        alert(err.error || "Feltöltési hiba.");
+      }
+    } catch (error) {
+      alert("Hálózati hiba!");
+    }
+    setUploading(false);
+  };
+
+  const handleSaveContent = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSaving(true);
+    const formData = new FormData(e.currentTarget);
+    const payload: any = { ...campaign };
+    formData.forEach((value, key) => { payload[key] = value || null; });
+    try {
+      const res = await fetch(`/api/admin/campaigns/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setCampaign(updated);
+        setIsEditingContent(false);
+        alert("Tartalom mentve!");
+      } else {
+        const err = await res.json();
+        alert(err.error || "Hiba történt.");
+      }
+    } catch (error) {
+      alert("Hálózati hiba!");
+    }
+    setSaving(false);
   };
 
   // Flatten categories for select
@@ -569,6 +635,247 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
           )}
         </div>
       )}
+
+      {/* Phase 3: Tartalom & Megjelenés */}
+      <div className="glass p-6 rounded-2xl shadow-sm border border-border/50">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold text-foreground">Tartalom & Megjelenés</h3>
+          {!isEditingContent && (
+            <button onClick={() => setIsEditingContent(true)} className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-lg transition-colors border border-blue-200">
+              Szerkesztés
+            </button>
+          )}
+        </div>
+
+        {isEditingContent ? (
+          <form onSubmit={handleSaveContent} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Akciós Oldal Főcíme</label>
+                <input type="text" name="publicTitle" defaultValue={campaign.publicTitle || ""} placeholder="pl. Nyári Leárazás — akár 30% kedvezmény!" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Banner Kattintási Cél (URL)</label>
+                <input type="text" name="bannerLink" defaultValue={campaign.bannerLink || ""} placeholder="pl. /akcio/nyari-learazas" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-2">Akciós Oldal Leírása</label>
+              <textarea name="publicDescription" defaultValue={campaign.publicDescription || ""} rows={4} placeholder="Az akciós oldal szövege..." className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
+            </div>
+            <div className="flex gap-4 pt-2">
+              <button disabled={saving} type="submit" className="bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition-all disabled:opacity-50">Mentés</button>
+              <button type="button" onClick={() => setIsEditingContent(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-6 rounded-xl transition-all">Mégse</button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-1">Akciós Oldal Főcíme</p>
+              <p className="text-foreground">{campaign.publicTitle || <span className="italic text-foreground/40">Nincs megadva</span>}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-1">Akciós Oldal Leírása</p>
+              <p className="text-foreground text-sm">{campaign.publicDescription || <span className="italic text-foreground/40">Nincs megadva</span>}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wider mb-1">Banner Link</p>
+              <p className="text-foreground text-sm">{campaign.bannerLink || <span className="italic text-foreground/40">Nincs megadva</span>}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Image uploads */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 border-t border-border/50 pt-6">
+          {/* Banner image */}
+          <div>
+            <p className="text-sm font-medium text-foreground/80 mb-3">🖼️ Főoldali Banner Kép</p>
+            {campaign.bannerImageUrl && (
+              <div className="mb-3 relative">
+                <img src={campaign.bannerImageUrl} alt="Banner" className="w-full h-32 object-cover rounded-xl border border-border" />
+                <button
+                  onClick={async () => {
+                    const res = await fetch(`/api/admin/campaigns/${id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ ...campaign, bannerImageUrl: null }),
+                    });
+                    if (res.ok) setCampaign(await res.json());
+                  }}
+                  className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg"
+                >
+                  ✕ Törlés
+                </button>
+              </div>
+            )}
+            <label className={`flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+              uploadingBanner ? 'border-primary bg-primary/5' : 'border-border hover:border-primary hover:bg-primary/5'
+            }`}>
+              <input type="file" accept="image/*" className="hidden" disabled={uploadingBanner}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadImage(file, "bannerImageUrl", setUploadingBanner);
+                }}
+              />
+              <span className="text-sm font-medium text-foreground/70">
+                {uploadingBanner ? "Feltöltés..." : campaign.bannerImageUrl ? "Banner csere" : "+ Banner feltöltése"}
+              </span>
+            </label>
+            <p className="text-xs text-foreground/50 mt-1">Ajánlott méret: 1920×600 px, max 5 MB</p>
+          </div>
+
+          {/* Thumbnail image */}
+          <div>
+            <p className="text-sm font-medium text-foreground/80 mb-3">⭐ Kiemelt Ajánlat Kép (Thumbnail)</p>
+            {campaign.thumbnailUrl && (
+              <div className="mb-3 relative">
+                <img src={campaign.thumbnailUrl} alt="Thumbnail" className="w-full h-32 object-cover rounded-xl border border-border" />
+                <button
+                  onClick={async () => {
+                    const res = await fetch(`/api/admin/campaigns/${id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ ...campaign, thumbnailUrl: null }),
+                    });
+                    if (res.ok) setCampaign(await res.json());
+                  }}
+                  className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg"
+                >
+                  ✕ Törlés
+                </button>
+              </div>
+            )}
+            <label className={`flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+              uploadingThumbnail ? 'border-primary bg-primary/5' : 'border-border hover:border-primary hover:bg-primary/5'
+            }`}>
+              <input type="file" accept="image/*" className="hidden" disabled={uploadingThumbnail}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUploadImage(file, "thumbnailUrl", setUploadingThumbnail);
+                }}
+              />
+              <span className="text-sm font-medium text-foreground/70">
+                {uploadingThumbnail ? "Feltöltés..." : campaign.thumbnailUrl ? "Kép csere" : "+ Kép feltöltése"}
+              </span>
+            </label>
+            <p className="text-xs text-foreground/50 mt-1">Ajánlott méret: 600×400 px, max 5 MB</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Phase 3: Blog & Social Média */}
+      <div className="glass p-6 rounded-2xl shadow-sm border border-border/50">
+        <h3 className="text-lg font-bold text-foreground mb-6">Blog & Social Média</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Blog */}
+          <div>
+            <p className="text-sm font-semibold text-foreground/70 mb-3">📝 Kapcsolt Blog Bejegyzés</p>
+            {campaign.blogPostId ? (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-3">
+                <p className="text-sm font-bold text-green-800">
+                  ✅ {blogPosts.find(b => b.id === campaign.blogPostId)?.title ||
+                    blogPosts.find(b => b.id === campaign.blogPostId)?.draftTitle ||
+                    "Kiválasztott bejegyzés"}
+                </p>
+                <button
+                  onClick={async () => {
+                    const res = await fetch(`/api/admin/campaigns/${id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ ...campaign, blogPostId: null }),
+                    });
+                    if (res.ok) setCampaign(await res.json());
+                  }}
+                  className="mt-2 text-xs text-red-600 hover:text-red-800 font-bold"
+                >
+                  ✕ Leválasztás
+                </button>
+              </div>
+            ) : (
+              <div className="mb-3">
+                <select
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm"
+                  defaultValue=""
+                  onChange={async (e) => {
+                    if (!e.target.value) return;
+                    const res = await fetch(`/api/admin/campaigns/${id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ ...campaign, blogPostId: e.target.value }),
+                    });
+                    if (res.ok) setCampaign(await res.json());
+                  }}
+                >
+                  <option value="">Válassz blog bejegyzést...</option>
+                  {blogPosts.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.title || b.draftTitle || "(Névtelen)"} [{b.status}]
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <p className="text-xs text-foreground/50">Összekapcsolt blog bejegyzéssel mélyebb tartalmat adhatsz a kampányhoz.</p>
+          </div>
+
+          {/* Social média */}
+          <div>
+            <p className="text-sm font-semibold text-foreground/70 mb-3">📱 Social Média Szövegjavaslat</p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const text = formData.get("socialMediaText") as string;
+                const imageUrl = formData.get("socialMediaImageUrl") as string;
+                const res = await fetch(`/api/admin/campaigns/${id}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ ...campaign, socialMediaText: text || null, socialMediaImageUrl: imageUrl || null }),
+                });
+                if (res.ok) {
+                  setCampaign(await res.json());
+                  alert("Social média tartalom mentve!");
+                }
+              }}
+              className="space-y-3"
+            >
+              <textarea
+                name="socialMediaText"
+                defaultValue={campaign.socialMediaText || ""}
+                rows={4}
+                placeholder={`Pl: 🔥 Nagy nyári akció! ${campaign.name} — akár 30% kedvezmény kiválasztott termékekre! Nézd meg most 👉 [link] #akció #kampány`}
+                className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm"
+              />
+              <input
+                type="text"
+                name="socialMediaImageUrl"
+                defaultValue={campaign.socialMediaImageUrl || campaign.bannerImageUrl || ""}
+                placeholder="Social média kép URL (alapértelmezetten a banner kép)"
+                className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm"
+              />
+              <button type="submit" className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-2.5 rounded-xl text-sm transition-all">
+                💾 Social Szöveg Mentése
+              </button>
+            </form>
+            {campaign.socialMediaText && (
+              <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <p className="text-xs font-bold text-slate-500 mb-1 uppercase">Előnézet:</p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{campaign.socialMediaText}</p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(campaign.socialMediaText!);
+                    alert("Szöveg vágólapra másolva!");
+                  }}
+                  className="mt-2 text-xs bg-slate-200 hover:bg-slate-300 font-bold px-3 py-1 rounded-lg transition-colors"
+                >
+                  📋 Másolás
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
